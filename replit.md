@@ -135,3 +135,18 @@ Preferred communication style: Simple, everyday language.
 - All combat calculations and validation happen server-side
 - Prevents client-side cheating and maintains game integrity
 - Client receives only authorized state updates
+
+**Character Creation & Validation System**
+- Players create custom mages before battle with configurable attributes
+- Attribute system: Intellect (affects maxMana), Stamina (affects maxHealth), Wisdom (affects manaRegen)
+- Specialization system: Pyromancer (fire +20% damage, -20% cost) or Aquamancer (water +20% damage, -20% cost)
+- Comprehensive validation enforces:
+  - Name: Non-empty trimmed string
+  - Specialization: Must be "pyromancer" or "aquamancer"
+  - Attributes: Integer values only
+  - Minimum per attribute: 6
+  - Maximum per attribute: 16 (base 10 + 6 free points)
+  - Maximum total attributes: 36 (prevents redistribution exploits)
+- Both client-side UI guards and server-side validation prevent stat inflation
+- AI strategically generates character builds matching combat style and specialization
+- Date implemented: November 16, 2025
