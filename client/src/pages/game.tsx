@@ -1,44 +1,35 @@
 import { useState, useEffect } from "react";
-import { SpellComponent, Mage } from "@shared/schema";
+import { SpellComponent, GameState } from "@shared/schema";
 import ComponentLibrary from "@/components/ComponentLibrary";
 import SpellBuilder from "@/components/SpellBuilder";
 import BattleArena from "@/components/BattleArena";
 import TutorialDialog from "@/components/TutorialDialog";
 import { Button } from "@/components/ui/button";
-import { HelpCircle, Moon, Sun } from "lucide-react";
-import { calculateSpellPower } from "@/lib/gameData";
+import { HelpCircle, Moon, Sun, RotateCcw } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { createNewGame, castSpell, executeAITurn, deleteGame } from "@/lib/gameApi";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 
 export default function GamePage() {
   const [showTutorial, setShowTutorial] = useState(false);
   const [isDark, setIsDark] = useState(false);
   const [spellComponents, setSpellComponents] = useState<SpellComponent[]>([]);
   const [castingSpell, setCastingSpell] = useState<any>(null);
+  const [sessionId, setSessionId] = useState<string | null>(null);
+  const [gameState, setGameState] = useState<GameState | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const [showVictoryDialog, setShowVictoryDialog] = useState(false);
+  const [showDefeatDialog, setShowDefeatDialog] = useState(false);
   const { toast } = useToast();
-  
-  //todo: remove mock functionality - Initial game state with mock data
-  const [player, setPlayer] = useState<Mage>({
-    id: "player1",
-    name: "Aria Stormweaver",
-    health: 100,
-    maxHealth: 100,
-    mana: 100,
-    maxMana: 100,
-    isPlayer: true,
-  });
-  
-  //todo: remove mock functionality - AI opponent mock data
-  const [opponent, setOpponent] = useState<Mage>({
-    id: "opponent1",
-    name: "Dark Sorcerer",
-    health: 100,
-    maxHealth: 100,
-    mana: 100,
-    maxMana: 100,
-    isPlayer: false,
-  });
-  
-  const [currentTurn, setCurrentTurn] = useState<"player" | "opponent">("player");
   
   useEffect(() => {
     if (isDark) {
@@ -48,97 +39,138 @@ export default function GamePage() {
     }
   }, [isDark]);
   
-  const handleCastSpell = () => {
-    const { damage, manaCost, effect } = calculateSpellPower(spellComponents);
-    
-    if (manaCost > player.mana) {
+  useEffect(() => {
+    initializeGame();
+  }, []);
+  
+  useEffect(() => {
+    if (gameState?.gamePhase === "victory") {
+      setShowVictoryDialog(true);
+    } else if (gameState?.gamePhase === "defeat") {
+      setShowDefeatDialog(true);
+    }
+  }, [gameState?.gamePhase]);
+  
+  const initializeGame = async () => {
+    try {
+      setIsLoading(true);
+      const { sessionId: newSessionId, gameState: newGameState } = await createNewGame();
+      setSessionId(newSessionId);
+      setGameState(newGameState);
+    } catch (error) {
       toast({
-        title: "Not enough mana!",
-        description: `You need ${manaCost} mana but only have ${player.mana}`,
+        title: "Error",
+        description: "Failed to create game. Please refresh the page.",
         variant: "destructive",
       });
-      return;
+    } finally {
+      setIsLoading(false);
     }
+  };
+  
+  const handleCastSpell = async () => {
+    if (!sessionId || !gameState) return;
     
-    // Show spell animation
-    setCastingSpell({
-      effect,
-      damage,
-      caster: "player",
-    });
-    
-    // Apply damage and mana cost
-    setTimeout(() => {
-      setOpponent(prev => ({
-        ...prev,
-        health: Math.max(0, prev.health - damage),
-      }));
-      setPlayer(prev => ({
-        ...prev,
-        mana: prev.mana - manaCost,
-      }));
-      setCastingSpell(null);
-      setSpellComponents([]);
+    try {
+      setIsLoading(true);
+      const response = await castSpell(sessionId, spellComponents);
       
-      // Check victory
-      if (opponent.health - damage <= 0) {
+      // Show spell animation
+      setCastingSpell({
+        effect: response.spellResult.effect,
+        damage: response.spellResult.damage,
+        caster: "player",
+      });
+      
+      // Update game state after animation
+      setTimeout(async () => {
+        setGameState(response.gameState);
+        setCastingSpell(null);
+        setSpellComponents([]);
+        
+        // Check victory
+        if (response.gameState.gamePhase === "victory") {
+          return;
+        }
+        
+        // Execute AI turn
+        setTimeout(() => {
+          handleAITurn();
+        }, 1000);
+      }, 2000);
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to cast spell",
+        variant: "destructive",
+      });
+      setCastingSpell(null);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+  
+  const handleAITurn = async () => {
+    if (!sessionId) return;
+    
+    try {
+      const response = await executeAITurn(sessionId);
+      
+      if (response.aiPassed) {
+        setGameState(response.gameState);
         toast({
-          title: "Victory!",
-          description: "You have defeated the Dark Sorcerer!",
+          title: "AI Passed",
+          description: "The opponent doesn't have enough mana to cast a spell",
         });
         return;
       }
       
-      // AI turn
-      setTimeout(() => {
-        handleAITurn();
-      }, 1000);
-    }, 2000);
+      if (response.aiSpell) {
+        // Show AI spell animation
+        setCastingSpell({
+          effect: response.aiSpell.effect,
+          damage: response.aiSpell.damage,
+          caster: "opponent",
+        });
+        
+        setTimeout(() => {
+          setGameState(response.gameState);
+          setCastingSpell(null);
+        }, 2000);
+      }
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to execute AI turn",
+        variant: "destructive",
+      });
+      setCastingSpell(null);
+    }
   };
   
-  //todo: remove mock functionality - Simple AI behavior
-  const handleAITurn = () => {
-    setCurrentTurn("opponent");
-    
-    setTimeout(() => {
-      const aiDamage = Math.floor(Math.random() * 30) + 15;
-      const aiManaCost = Math.floor(Math.random() * 25) + 15;
-      
-      setCastingSpell({
-        effect: "Shadow Bolt",
-        damage: aiDamage,
-        caster: "opponent",
-      });
-      
-      setTimeout(() => {
-        setPlayer(prev => ({
-          ...prev,
-          health: Math.max(0, prev.health - aiDamage),
-        }));
-        setOpponent(prev => ({
-          ...prev,
-          mana: Math.min(prev.maxMana, prev.mana - aiManaCost + 20),
-        }));
-        setCastingSpell(null);
-        setCurrentTurn("player");
-        
-        // Restore some mana to player
-        setPlayer(prev => ({
-          ...prev,
-          mana: Math.min(prev.maxMana, prev.mana + 15),
-        }));
-        
-        // Check defeat
-        if (player.health - aiDamage <= 0) {
-          toast({
-            title: "Defeat",
-            description: "The Dark Sorcerer has won...",
-            variant: "destructive",
-          });
-        }
-      }, 2000);
-    }, 1500);
+  const handleNewGame = async () => {
+    if (sessionId) {
+      await deleteGame(sessionId);
+    }
+    setShowVictoryDialog(false);
+    setShowDefeatDialog(false);
+    await initializeGame();
   };
+  
+  if (isLoading && !gameState) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+          <p className="text-muted-foreground">Initializing game...</p>
+        </div>
+      </div>
+    );
+  }
+  
+  if (!gameState) {
+    return null;
+  }
   
   return (
     <div className="min-h-screen bg-background">
@@ -147,6 +179,14 @@ export default function GamePage() {
         <div className="max-w-7xl mx-auto flex items-center justify-between">
           <h1 className="font-serif font-bold text-3xl" data-testid="text-game-title">Mage War</h1>
           <div className="flex items-center gap-2">
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={handleNewGame}
+              data-testid="button-new-game"
+            >
+              <RotateCcw className="w-5 h-5" />
+            </Button>
             <Button
               variant="ghost"
               size="icon"
@@ -182,16 +222,16 @@ export default function GamePage() {
               onComponentsChange={setSpellComponents}
               onCastSpell={handleCastSpell}
               onClearSpell={() => setSpellComponents([])}
-              playerMana={player.mana}
+              playerMana={gameState.player.mana}
             />
           </div>
           
           {/* Battle Arena */}
           <div className="lg:col-span-1">
             <BattleArena
-              player={player}
-              opponent={opponent}
-              currentTurn={currentTurn}
+              player={gameState.player}
+              opponent={gameState.opponent}
+              currentTurn={gameState.currentTurn}
               castingSpell={castingSpell}
             />
           </div>
@@ -200,6 +240,40 @@ export default function GamePage() {
       
       {/* Tutorial */}
       <TutorialDialog open={showTutorial} onClose={() => setShowTutorial(false)} />
+      
+      {/* Victory Dialog */}
+      <AlertDialog open={showVictoryDialog} onOpenChange={setShowVictoryDialog}>
+        <AlertDialogContent data-testid="dialog-victory">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="font-serif text-2xl">Victory!</AlertDialogTitle>
+            <AlertDialogDescription>
+              You have defeated the Dark Sorcerer! Your mastery of spell-crafting is unmatched.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogAction onClick={handleNewGame} data-testid="button-victory-new-game">
+              Play Again
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+      
+      {/* Defeat Dialog */}
+      <AlertDialog open={showDefeatDialog} onOpenChange={setShowDefeatDialog}>
+        <AlertDialogContent data-testid="dialog-defeat">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="font-serif text-2xl">Defeat</AlertDialogTitle>
+            <AlertDialogDescription>
+              The Dark Sorcerer has proven too powerful. Study your spell-craft and try again!
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogAction onClick={handleNewGame} data-testid="button-defeat-new-game">
+              Try Again
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
