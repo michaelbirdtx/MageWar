@@ -48,6 +48,11 @@ export default function CharacterCreator({ open, onComplete }: CharacterCreatorP
     e.preventDefault();
     if (!name.trim()) return;
     
+    // Ensure all points have been spent
+    if (availablePoints !== 0) {
+      return; // Must spend all points before starting
+    }
+    
     // Ensure player hasn't exceeded total attribute limit
     if (totalAttributes > MAX_TOTAL_ATTRIBUTES) {
       return; // This should never happen with proper UI controls, but safety check
@@ -152,14 +157,21 @@ export default function CharacterCreator({ open, onComplete }: CharacterCreatorP
             </p>
           </div>
 
-          <Button
-            type="submit"
-            className="w-full"
-            data-testid="button-start-game"
-            disabled={!name.trim() || totalAttributes > MAX_TOTAL_ATTRIBUTES}
-          >
-            Start Game
-          </Button>
+          <div className="space-y-2">
+            {availablePoints !== 0 && (
+              <p className="text-xs text-center text-muted-foreground">
+                You must assign all {FREE_POINTS} points before starting
+              </p>
+            )}
+            <Button
+              type="submit"
+              className="w-full"
+              data-testid="button-start-game"
+              disabled={!name.trim() || availablePoints !== 0 || totalAttributes > MAX_TOTAL_ATTRIBUTES}
+            >
+              Start Game
+            </Button>
+          </div>
         </form>
       </DialogContent>
     </Dialog>
