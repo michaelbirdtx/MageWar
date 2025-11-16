@@ -1,10 +1,10 @@
 import { useState } from "react";
-import { SpellComponent } from "@shared/schema";
+import { SpellComponent, Specialization } from "@shared/schema";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Trash2, Sparkles, X } from "lucide-react";
 import ElementIcon from "./ElementIcon";
-import { ELEMENT_COLORS, ELEMENT_BG_COLORS, ELEMENT_BORDER_COLORS, calculateSpellPower } from "@/lib/gameData";
+import { ELEMENT_COLORS, ELEMENT_BG_COLORS, ELEMENT_BORDER_COLORS, calculateSpellPower, applySpecializationBonus } from "@/lib/gameData";
 
 interface SpellBuilderProps {
   components: SpellComponent[];
@@ -12,6 +12,7 @@ interface SpellBuilderProps {
   onCastSpell: () => void;
   onClearSpell: () => void;
   playerMana: number;
+  playerSpecialization: Specialization;
 }
 
 export default function SpellBuilder({
@@ -20,13 +21,27 @@ export default function SpellBuilder({
   onCastSpell,
   onClearSpell,
   playerMana,
+  playerSpecialization,
 }: SpellBuilderProps) {
   const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
   const [dragOverChild, setDragOverChild] = useState<string | null>(null);
   
   const spellStats = calculateSpellPower(components);
-  const { damage, manaCost, effect, target, validationError } = spellStats;
+  const baseDamage = spellStats.damage;
+  const baseManaCost = spellStats.manaCost;
+  
+  // Apply specialization bonus
+  const { damage, manaCost, damageBonus, costReduction } = applySpecializationBonus(
+    components,
+    baseDamage,
+    baseManaCost,
+    playerSpecialization
+  );
+  
+  const { effect, target, validationError } = spellStats;
   const canCast = components.length > 0 && manaCost <= playerMana && !validationError;
+  
+  const specializationName = playerSpecialization === "pyromancer" ? "Pyromancer" : "Aquamancer";
   
   const handleDrop = (e: React.DragEvent, parentId?: string) => {
     e.preventDefault();
@@ -175,12 +190,24 @@ export default function SpellBuilder({
               </div>
               <div>
                 <p className="text-xs text-muted-foreground">Damage</p>
-                <p className="font-semibold text-destructive" data-testid="text-spell-damage">{damage}</p>
+                <p className="font-semibold text-destructive" data-testid="text-spell-damage">
+                  {damage}
+                  {damageBonus > 0 && (
+                    <span className="text-xs ml-1 text-green-600 dark:text-green-400">
+                      (+{damageBonus} {specializationName})
+                    </span>
+                  )}
+                </p>
               </div>
               <div>
                 <p className="text-xs text-muted-foreground">Mana Cost</p>
                 <p className={`font-semibold ${manaCost > playerMana ? "text-destructive" : "text-primary"}`} data-testid="text-spell-cost">
                   {manaCost}
+                  {costReduction > 0 && (
+                    <span className="text-xs ml-1 text-green-600 dark:text-green-400">
+                      (-{costReduction} {specializationName})
+                    </span>
+                  )}
                 </p>
               </div>
             </div>

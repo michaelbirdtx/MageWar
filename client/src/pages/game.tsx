@@ -221,25 +221,26 @@ export default function GamePage() {
       
       {/* Main Game Area */}
       <main className="p-6">
-        <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-5 gap-6">
           {/* Component Library */}
           <div className="lg:col-span-1">
             <ComponentLibrary onComponentSelect={(comp) => console.log("Selected:", comp)} />
           </div>
           
           {/* Spell Builder */}
-          <div className="lg:col-span-1">
+          <div className="lg:col-span-2">
             <SpellBuilder
               components={spellComponents}
               onComponentsChange={setSpellComponents}
               onCastSpell={handleCastSpell}
               onClearSpell={() => setSpellComponents([])}
               playerMana={gameState.player.mana}
+              playerSpecialization={gameState.player.specialization}
             />
           </div>
           
           {/* Battle Arena */}
-          <div className="lg:col-span-1">
+          <div className="lg:col-span-2">
             <BattleArena
               player={gameState.player}
               opponent={gameState.opponent}

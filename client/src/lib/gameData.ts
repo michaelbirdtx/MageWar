@@ -309,3 +309,39 @@ export function calculateSpellPower(components: SpellComponent[]): {
     validationError,
   };
 }
+
+export function applySpecializationBonus(
+  components: SpellComponent[],
+  baseDamage: number,
+  baseManaCost: number,
+  specialization: "pyromancer" | "aquamancer"
+): { damage: number; manaCost: number; damageBonus: number; costReduction: number } {
+  // Determine which element gets the bonus
+  const bonusElement: ElementType = specialization === "pyromancer" ? "fire" : "water";
+  
+  // Check if spell contains the bonus element
+  const hasMatchingElement = (comp: SpellComponent): boolean => {
+    if (comp.element === bonusElement) return true;
+    if (comp.children) {
+      return comp.children.some(hasMatchingElement);
+    }
+    return false;
+  };
+  
+  const hasBonusElement = components.some(hasMatchingElement);
+  
+  if (!hasBonusElement) {
+    return { damage: baseDamage, manaCost: baseManaCost, damageBonus: 0, costReduction: 0 };
+  }
+  
+  // Apply +20% damage and -20% cost
+  const damageBonus = Math.floor(baseDamage * 0.2);
+  const costReduction = Math.floor(baseManaCost * 0.2);
+  
+  return {
+    damage: baseDamage + damageBonus,
+    manaCost: Math.max(0, baseManaCost - costReduction),
+    damageBonus,
+    costReduction,
+  };
+}
