@@ -34,17 +34,17 @@ export default function ComponentLibrary({ onComponentSelect }: ComponentLibrary
       <Tabs defaultValue="all" onValueChange={(v) => setActiveElement(v as ElementType | "all")}>
         <TabsList className="grid grid-cols-5 w-full">
           <TabsTrigger value="all" data-testid="button-filter-all">All</TabsTrigger>
+          <TabsTrigger value="air" data-testid="button-filter-air">
+            <Wind className="w-4 h-4" />
+          </TabsTrigger>
+          <TabsTrigger value="earth" data-testid="button-filter-earth">
+            <Mountain className="w-4 h-4" />
+          </TabsTrigger>
           <TabsTrigger value="fire" data-testid="button-filter-fire">
             <Flame className="w-4 h-4" />
           </TabsTrigger>
           <TabsTrigger value="water" data-testid="button-filter-water">
             <Droplet className="w-4 h-4" />
-          </TabsTrigger>
-          <TabsTrigger value="earth" data-testid="button-filter-earth">
-            <Mountain className="w-4 h-4" />
-          </TabsTrigger>
-          <TabsTrigger value="air" data-testid="button-filter-air">
-            <Wind className="w-4 h-4" />
           </TabsTrigger>
         </TabsList>
         
