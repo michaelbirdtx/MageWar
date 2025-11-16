@@ -176,36 +176,36 @@ export default function SpellBuilder({
               </p>
             </div>
           )}
-          <div className="flex items-center justify-between">
-            <div className="flex gap-6">
+          <div className="flex flex-col gap-3">
+            <div className="grid grid-cols-2 gap-3">
               <div>
                 <p className="text-xs text-muted-foreground">Effect</p>
-                <p className="font-semibold" data-testid="text-spell-effect">{effect}</p>
+                <p className="font-semibold text-sm" data-testid="text-spell-effect">{effect}</p>
               </div>
               <div>
                 <p className="text-xs text-muted-foreground">Target</p>
-                <p className={`font-semibold ${target === "self" ? "text-yellow-600 dark:text-yellow-400" : "text-green-600 dark:text-green-400"}`} data-testid="text-spell-target">
+                <p className={`font-semibold text-sm ${target === "self" ? "text-yellow-600 dark:text-yellow-400" : "text-green-600 dark:text-green-400"}`} data-testid="text-spell-target">
                   {target === "self" ? "Self" : "Opponent"}
                 </p>
               </div>
               <div>
                 <p className="text-xs text-muted-foreground">Damage</p>
-                <p className="font-semibold text-destructive" data-testid="text-spell-damage">
+                <p className="font-semibold text-sm text-destructive" data-testid="text-spell-damage">
                   {damage}
                   {damageBonus > 0 && (
                     <span className="text-xs ml-1 text-green-600 dark:text-green-400">
-                      (+{damageBonus} {specializationName})
+                      (+{damageBonus} {specializationName} bonus)
                     </span>
                   )}
                 </p>
               </div>
               <div>
                 <p className="text-xs text-muted-foreground">Mana Cost</p>
-                <p className={`font-semibold ${manaCost > playerMana ? "text-destructive" : "text-primary"}`} data-testid="text-spell-cost">
+                <p className={`font-semibold text-sm ${manaCost > playerMana ? "text-destructive" : "text-primary"}`} data-testid="text-spell-cost">
                   {manaCost}
                   {costReduction > 0 && (
                     <span className="text-xs ml-1 text-green-600 dark:text-green-400">
-                      (-{costReduction} {specializationName})
+                      (-{costReduction} {specializationName} bonus)
                     </span>
                   )}
                 </p>
@@ -214,7 +214,7 @@ export default function SpellBuilder({
             <Button
               onClick={onCastSpell}
               disabled={!canCast}
-              className="font-semibold"
+              className="w-full font-semibold"
               data-testid="button-cast-spell"
             >
               <Sparkles className="w-4 h-4 mr-2" />

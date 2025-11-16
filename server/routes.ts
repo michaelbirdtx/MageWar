@@ -68,8 +68,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: "Invalid attribute sum" });
       }
       
-      if (totalAttributes > MAX_TOTAL_ATTRIBUTES) {
-        return res.status(400).json({ error: "Total attributes exceed maximum allowed" });
+      // Enforce that all points must be spent
+      if (totalAttributes !== MAX_TOTAL_ATTRIBUTES) {
+        return res.status(400).json({ error: "All attribute points must be assigned" });
       }
       
       const sessionId = randomUUID();

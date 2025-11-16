@@ -221,14 +221,14 @@ export default function GamePage() {
       
       {/* Main Game Area */}
       <main className="p-6">
-        <div className="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-5 gap-6">
+        <div className="max-w-[100rem] mx-auto grid grid-cols-1 lg:grid-cols-5 gap-6">
           {/* Component Library */}
-          <div className="lg:col-span-1">
+          <div className="lg:col-span-1 min-w-0">
             <ComponentLibrary onComponentSelect={(comp) => console.log("Selected:", comp)} />
           </div>
           
           {/* Spell Builder */}
-          <div className="lg:col-span-2">
+          <div className="lg:col-span-3 lg:min-w-[640px]">
             <SpellBuilder
               components={spellComponents}
               onComponentsChange={setSpellComponents}
@@ -240,7 +240,7 @@ export default function GamePage() {
           </div>
           
           {/* Battle Arena */}
-          <div className="lg:col-span-2">
+          <div className="lg:col-span-1 min-w-0">
             <BattleArena
               player={gameState.player}
               opponent={gameState.opponent}

@@ -334,13 +334,30 @@ export function applySpecializationBonus(
     return { damage: baseDamage, manaCost: baseManaCost, damageBonus: 0, costReduction: 0 };
   }
   
-  // Apply +20% damage and -20% cost
-  const damageBonus = Math.floor(baseDamage * 0.2);
-  const costReduction = Math.floor(baseManaCost * 0.2);
+  // Calculate mana cost reduction per-component (matches backend logic)
+  let totalReducedCost = 0;
+  const calculateReducedCost = (comp: SpellComponent): void => {
+    let componentCost = comp.manaCost;
+    if (comp.element === bonusElement) {
+      componentCost = Math.floor(componentCost * 0.8);
+    }
+    totalReducedCost += componentCost;
+    
+    if (comp.children) {
+      comp.children.forEach(calculateReducedCost);
+    }
+  };
+  
+  components.forEach(calculateReducedCost);
+  const costReduction = baseManaCost - totalReducedCost;
+  
+  // Apply +20% damage bonus to total (matches backend logic)
+  const bonusDamage = Math.floor(baseDamage * 1.2);
+  const damageBonus = bonusDamage - baseDamage;
   
   return {
-    damage: baseDamage + damageBonus,
-    manaCost: Math.max(0, baseManaCost - costReduction),
+    damage: bonusDamage,
+    manaCost: totalReducedCost,
     damageBonus,
     costReduction,
   };
