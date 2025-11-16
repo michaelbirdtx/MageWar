@@ -1,5 +1,5 @@
 import { sql } from "drizzle-orm";
-import { pgTable, text, varchar } from "drizzle-orm/pg-core";
+import { pgTable, text, varchar, integer, jsonb } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
@@ -16,3 +16,41 @@ export const insertUserSchema = createInsertSchema(users).pick({
 
 export type InsertUser = z.infer<typeof insertUserSchema>;
 export type User = typeof users.$inferSelect;
+
+export type ElementType = "fire" | "water" | "earth" | "air";
+
+export interface SpellComponent {
+  id: string;
+  name: string;
+  element: ElementType;
+  type: "container" | "material" | "action";
+  description: string;
+  manaCost: number;
+  children?: SpellComponent[];
+}
+
+export interface Spell {
+  id: string;
+  name: string;
+  components: SpellComponent[];
+  totalManaCost: number;
+  damage: number;
+  effect?: string;
+}
+
+export interface Mage {
+  id: string;
+  name: string;
+  health: number;
+  maxHealth: number;
+  mana: number;
+  maxMana: number;
+  isPlayer: boolean;
+}
+
+export interface GameState {
+  player: Mage;
+  opponent: Mage;
+  currentTurn: "player" | "opponent";
+  gamePhase: "building" | "combat" | "victory" | "defeat";
+}
