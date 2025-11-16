@@ -2,7 +2,7 @@ import { useState } from "react";
 import { SpellComponent } from "@shared/schema";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Trash2, Sparkles, X, AlertTriangle } from "lucide-react";
+import { Trash2, Sparkles, X } from "lucide-react";
 import ElementIcon from "./ElementIcon";
 import { ELEMENT_COLORS, ELEMENT_BG_COLORS, ELEMENT_BORDER_COLORS, calculateSpellPower } from "@/lib/gameData";
 
@@ -25,7 +25,7 @@ export default function SpellBuilder({
   const [dragOverChild, setDragOverChild] = useState<string | null>(null);
   
   const spellStats = calculateSpellPower(components);
-  const { damage, manaCost, effect, target, validationError, clashingContainers } = spellStats;
+  const { damage, manaCost, effect, target, validationError } = spellStats;
   const canCast = components.length > 0 && manaCost <= playerMana && !validationError;
   
   const handleDrop = (e: React.DragEvent, parentId?: string) => {
@@ -152,14 +152,6 @@ export default function SpellBuilder({
           {validationError && (
             <div className="mb-3 p-2 bg-destructive/10 border border-destructive/20 rounded-md">
               <p className="text-xs text-destructive font-medium">{validationError}</p>
-            </div>
-          )}
-          {clashingContainers && clashingContainers.length > 0 && (
-            <div className="mb-3 p-2 bg-orange-500/10 border border-orange-500/20 rounded-md flex items-start gap-2" data-testid="warning-clash">
-              <AlertTriangle className="w-4 h-4 text-orange-700 dark:text-orange-400 flex-shrink-0 mt-0.5" />
-              <p className="text-xs text-orange-700 dark:text-orange-400 font-medium">
-                Elements clash in: {clashingContainers.join(", ")} - Fire and Water neutralize each other
-              </p>
             </div>
           )}
           {target === "self" && !validationError && damage > 0 && (
