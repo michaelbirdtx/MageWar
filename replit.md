@@ -75,6 +75,7 @@ Preferred communication style: Simple, everyday language.
 - `Spell`: Assembled spell with total stats (damage, manaCost, effect)
 - `Mage`: Player/opponent state (health, mana, stats)
 - `GameState`: Complete game state (player, opponent, currentTurn, gamePhase)
+- Component organization: All components in `gameData.ts` are sorted alphabetically - first by element (Air, Earth, Fire, Water), then by component name within each element
 
 ### External Dependencies
 
