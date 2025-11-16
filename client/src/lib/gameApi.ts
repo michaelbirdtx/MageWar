@@ -6,6 +6,7 @@ export interface CastSpellResponse {
     effect: string;
     damage: number;
     manaCost: number;
+    target: "self" | "opponent";
   };
 }
 
@@ -15,6 +16,7 @@ export interface AITurnResponse {
     effect: string;
     damage: number;
     manaCost: number;
+    target: "self" | "opponent";
     components: SpellComponent[];
   };
   aiPassed?: boolean;

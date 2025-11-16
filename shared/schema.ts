@@ -18,14 +18,18 @@ export type InsertUser = z.infer<typeof insertUserSchema>;
 export type User = typeof users.$inferSelect;
 
 export type ElementType = "fire" | "water" | "earth" | "air";
+export type ComponentRole = "activation" | "propulsion" | "container" | "material";
 
 export interface SpellComponent {
   id: string;
   name: string;
   element: ElementType;
   type: "container" | "material" | "action";
+  role: ComponentRole;
   description: string;
   manaCost: number;
+  baseDamage: number;
+  damageMultiplier: number;
   children?: SpellComponent[];
 }
 

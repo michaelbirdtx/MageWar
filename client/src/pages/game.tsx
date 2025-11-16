@@ -80,6 +80,7 @@ export default function GamePage() {
         effect: response.spellResult.effect,
         damage: response.spellResult.damage,
         caster: "player",
+        target: response.spellResult.target,
       });
       
       // Update game state after animation
@@ -131,6 +132,7 @@ export default function GamePage() {
           effect: response.aiSpell.effect,
           damage: response.aiSpell.damage,
           caster: "opponent",
+          target: response.aiSpell.target,
         });
         
         setTimeout(() => {

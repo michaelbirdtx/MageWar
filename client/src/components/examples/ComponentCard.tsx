@@ -6,8 +6,11 @@ export default function ComponentCardExample() {
     name: "Spark",
     element: "fire" as const,
     type: "action" as const,
+    role: "activation" as const,
     description: "Ignites flammable materials",
     manaCost: 5,
+    baseDamage: 1,
+    damageMultiplier: 1,
   };
   
   return (

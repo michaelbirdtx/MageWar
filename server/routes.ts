@@ -72,11 +72,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       // Calculate spell effects
-      const { damage, manaCost, effect } = calculateSpellStats(components);
+      const { damage, manaCost, effect, target } = calculateSpellStats(components);
       
       // Apply damage and mana cost
       gameState.player = consumeMana(gameState.player, manaCost);
-      gameState = applyCombatDamage(gameState, damage, "opponent");
+      gameState = applyCombatDamage(gameState, damage, target === "opponent" ? "opponent" : "player");
       gameState.gamePhase = "combat";
       
       await storage.updateGameState(sessionId, gameState);
@@ -84,7 +84,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Return the spell result
       res.json({
         gameState,
-        spellResult: { effect, damage, manaCost },
+        spellResult: { effect, damage, manaCost, target },
       });
     } catch (error) {
       console.error("Error casting spell:", error);
@@ -121,11 +121,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       // Calculate AI spell effects
-      const { damage, manaCost, effect } = calculateSpellStats(aiComponents);
+      const { damage, manaCost, effect, target } = calculateSpellStats(aiComponents);
       
-      // Apply AI spell
+      // Apply AI spell (AI should always target player, but check just in case)
       gameState.opponent = consumeMana(gameState.opponent, manaCost);
-      gameState = applyCombatDamage(gameState, damage, "player");
+      gameState = applyCombatDamage(gameState, damage, target === "opponent" ? "player" : "opponent");
       
       // Switch back to player turn
       gameState = switchTurn(gameState);
@@ -134,7 +134,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       res.json({
         gameState,
-        aiSpell: { effect, damage, manaCost, components: aiComponents },
+        aiSpell: { effect, damage, manaCost, target, components: aiComponents },
       });
     } catch (error) {
       console.error("Error in AI turn:", error);

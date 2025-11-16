@@ -24,8 +24,9 @@ export default function SpellBuilder({
   const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
   const [dragOverChild, setDragOverChild] = useState<string | null>(null);
   
-  const { damage, manaCost, effect } = calculateSpellPower(components);
-  const canCast = components.length > 0 && manaCost <= playerMana;
+  const spellStats = calculateSpellPower(components);
+  const { damage, manaCost, effect, target, validationError } = spellStats;
+  const canCast = components.length > 0 && manaCost <= playerMana && !validationError;
   
   const handleDrop = (e: React.DragEvent, parentId?: string) => {
     e.preventDefault();
@@ -40,6 +41,10 @@ export default function SpellBuilder({
     if (parentId) {
       const updatedComponents = components.map(comp => {
         if (comp.id === parentId && comp.type === "container") {
+          // Limit containers to 4 children max
+          if ((comp.children || []).length >= 4) {
+            return comp;
+          }
           return {
             ...comp,
             children: [...(comp.children || []), newComponent],
@@ -144,11 +149,29 @@ export default function SpellBuilder({
       
       {components.length > 0 && (
         <Card className="p-4 bg-muted/30">
+          {validationError && (
+            <div className="mb-3 p-2 bg-destructive/10 border border-destructive/20 rounded-md">
+              <p className="text-xs text-destructive font-medium">{validationError}</p>
+            </div>
+          )}
+          {target === "self" && !validationError && damage > 0 && (
+            <div className="mb-3 p-2 bg-yellow-500/10 border border-yellow-500/20 rounded-md">
+              <p className="text-xs text-yellow-700 dark:text-yellow-400 font-medium">
+                Warning: This spell will damage YOU for {damage} HP
+              </p>
+            </div>
+          )}
           <div className="flex items-center justify-between">
             <div className="flex gap-6">
               <div>
                 <p className="text-xs text-muted-foreground">Effect</p>
                 <p className="font-semibold" data-testid="text-spell-effect">{effect}</p>
+              </div>
+              <div>
+                <p className="text-xs text-muted-foreground">Target</p>
+                <p className={`font-semibold ${target === "self" ? "text-yellow-600 dark:text-yellow-400" : "text-green-600 dark:text-green-400"}`} data-testid="text-spell-target">
+                  {target === "self" ? "Self" : "Opponent"}
+                </p>
               </div>
               <div>
                 <p className="text-xs text-muted-foreground">Damage</p>

@@ -4,27 +4,27 @@ import { calculateSpellStats } from "./gameLogic";
 
 const availableComponents: SpellComponent[] = [
   // Fire
-  { id: "spark", name: "Spark", element: "fire", type: "action", description: "Ignites", manaCost: 5 },
-  { id: "flame", name: "Flame", element: "fire", type: "material", description: "Pure fire", manaCost: 10 },
-  { id: "sulfur", name: "Sulfur", element: "earth", type: "material", description: "Flammable", manaCost: 8 },
-  { id: "ember", name: "Ember", element: "fire", type: "material", description: "Heat", manaCost: 6 },
+  { id: "spark", name: "Spark", element: "fire", type: "action", role: "activation", description: "Ignites", manaCost: 5, baseDamage: 1, damageMultiplier: 1 },
+  { id: "flame", name: "Flame", element: "fire", type: "material", role: "activation", description: "Pure fire", manaCost: 10, baseDamage: 3, damageMultiplier: 1 },
+  { id: "sulfur", name: "Sulfur", element: "earth", type: "material", role: "material", description: "Flammable", manaCost: 8, baseDamage: 0, damageMultiplier: 4 },
+  { id: "ember", name: "Ember", element: "fire", type: "material", role: "activation", description: "Heat", manaCost: 6, baseDamage: 2, damageMultiplier: 1 },
   
   // Water
-  { id: "ice", name: "Ice", element: "water", type: "material", description: "Frozen", manaCost: 8 },
-  { id: "water", name: "Water", element: "water", type: "material", description: "Liquid", manaCost: 7 },
-  { id: "frost", name: "Frost", element: "water", type: "action", description: "Freezes", manaCost: 9 },
-  { id: "mist", name: "Mist", element: "water", type: "material", description: "Vapor", manaCost: 5 },
+  { id: "ice", name: "Ice", element: "water", type: "material", role: "material", description: "Frozen", manaCost: 8, baseDamage: 0, damageMultiplier: 3 },
+  { id: "water", name: "Water", element: "water", type: "material", role: "material", description: "Liquid", manaCost: 7, baseDamage: 0, damageMultiplier: 2 },
+  { id: "frost", name: "Frost", element: "water", type: "action", role: "activation", description: "Freezes", manaCost: 9, baseDamage: 2, damageMultiplier: 1 },
+  { id: "mist", name: "Mist", element: "water", type: "material", role: "material", description: "Vapor", manaCost: 5, baseDamage: 0, damageMultiplier: 2 },
   
   // Earth
-  { id: "stone", name: "Stone", element: "earth", type: "material", description: "Dense", manaCost: 6 },
-  { id: "sand", name: "Sand", element: "earth", type: "material", description: "Granular", manaCost: 4 },
-  { id: "crystal", name: "Crystal", element: "earth", type: "material", description: "Amplifies", manaCost: 12 },
+  { id: "stone", name: "Stone", element: "earth", type: "material", role: "material", description: "Dense", manaCost: 6, baseDamage: 0, damageMultiplier: 3 },
+  { id: "sand", name: "Sand", element: "earth", type: "material", role: "material", description: "Granular", manaCost: 4, baseDamage: 0, damageMultiplier: 2 },
+  { id: "crystal", name: "Crystal", element: "earth", type: "material", role: "material", description: "Amplifies", manaCost: 12, baseDamage: 0, damageMultiplier: 5 },
   
   // Air
-  { id: "air-sphere", name: "Air Sphere", element: "air", type: "container", description: "Container", manaCost: 10 },
-  { id: "gust", name: "Gust", element: "air", type: "action", description: "Propels", manaCost: 8 },
-  { id: "wind", name: "Wind", element: "air", type: "material", description: "Current", manaCost: 6 },
-  { id: "vortex", name: "Vortex", element: "air", type: "container", description: "Swirling", manaCost: 12 },
+  { id: "air-sphere", name: "Air Sphere", element: "air", type: "container", role: "container", description: "Container", manaCost: 10, baseDamage: 0, damageMultiplier: 1 },
+  { id: "gust", name: "Gust", element: "air", type: "action", role: "propulsion", description: "Propels", manaCost: 8, baseDamage: 0, damageMultiplier: 1 },
+  { id: "wind", name: "Wind", element: "air", type: "material", role: "propulsion", description: "Current", manaCost: 6, baseDamage: 0, damageMultiplier: 1 },
+  { id: "vortex", name: "Vortex", element: "air", type: "container", role: "container", description: "Swirling", manaCost: 12, baseDamage: 0, damageMultiplier: 1 },
 ];
 
 interface SpellStrategy {
@@ -41,8 +41,8 @@ const spellStrategies: SpellStrategy[] = [
       { ...availableComponents.find(c => c.id === "air-sphere")!, children: [
         availableComponents.find(c => c.id === "sulfur")!,
         availableComponents.find(c => c.id === "spark")!,
+        availableComponents.find(c => c.id === "gust")!,
       ]},
-      availableComponents.find(c => c.id === "gust")!,
     ],
   },
   {
@@ -51,42 +51,51 @@ const spellStrategies: SpellStrategy[] = [
     components: [
       { ...availableComponents.find(c => c.id === "air-sphere")!, children: [
         availableComponents.find(c => c.id === "ice")!,
+        availableComponents.find(c => c.id === "frost")!,
+        availableComponents.find(c => c.id === "wind")!,
       ]},
-      availableComponents.find(c => c.id === "frost")!,
-      availableComponents.find(c => c.id === "gust")!,
     ],
   },
   {
-    name: "Steam Blast",
+    name: "Fire Strike",
     priority: 8,
     components: [
-      availableComponents.find(c => c.id === "flame")!,
-      availableComponents.find(c => c.id === "water")!,
-      availableComponents.find(c => c.id === "gust")!,
+      { ...availableComponents.find(c => c.id === "vortex")!, children: [
+        availableComponents.find(c => c.id === "flame")!,
+        availableComponents.find(c => c.id === "gust")!,
+      ]},
     ],
   },
   {
-    name: "Basic Fire",
+    name: "Ice Blast",
+    priority: 7,
+    components: [
+      { ...availableComponents.find(c => c.id === "air-sphere")!, children: [
+        availableComponents.find(c => c.id === "ice")!,
+        availableComponents.find(c => c.id === "water")!,
+        availableComponents.find(c => c.id === "wind")!,
+      ]},
+    ],
+  },
+  {
+    name: "Ember Strike",
+    priority: 6,
+    components: [
+      { ...availableComponents.find(c => c.id === "air-sphere")!, children: [
+        availableComponents.find(c => c.id === "ember")!,
+        availableComponents.find(c => c.id === "sand")!,
+        availableComponents.find(c => c.id === "gust")!,
+      ]},
+    ],
+  },
+  {
+    name: "Basic Missile",
     priority: 5,
     components: [
-      availableComponents.find(c => c.id === "flame")!,
-      availableComponents.find(c => c.id === "ember")!,
-    ],
-  },
-  {
-    name: "Simple Ice",
-    priority: 5,
-    components: [
-      availableComponents.find(c => c.id === "ice")!,
-      availableComponents.find(c => c.id === "frost")!,
-    ],
-  },
-  {
-    name: "Quick Spark",
-    priority: 3,
-    components: [
-      availableComponents.find(c => c.id === "spark")!,
-      availableComponents.find(c => c.id === "wind")!,
+      { ...availableComponents.find(c => c.id === "air-sphere")!, children: [
+        availableComponents.find(c => c.id === "stone")!,
+        availableComponents.find(c => c.id === "wind")!,
+      ]},
     ],
   },
 ];
@@ -98,9 +107,10 @@ export function generateAISpell(availableMana: number, difficulty: number = 0.7)
   // Try to use the best spell we can afford
   for (const strategy of sortedStrategies) {
     const components = deepCloneComponents(strategy.components);
-    const { manaCost } = calculateSpellStats(components);
+    const stats = calculateSpellStats(components);
     
-    if (manaCost <= availableMana) {
+    // Ensure spell costs within budget AND targets opponent
+    if (stats.manaCost <= availableMana && stats.target === "opponent") {
       // Add some randomness based on difficulty
       if (Math.random() < difficulty) {
         return assignUniqueIds(components);
@@ -108,20 +118,9 @@ export function generateAISpell(availableMana: number, difficulty: number = 0.7)
     }
   }
   
-  // If we can't afford any strategy, build a simple spell
-  const simpleComponents: SpellComponent[] = [];
-  let totalCost = 0;
-  
-  const shuffled = [...availableComponents].sort(() => Math.random() - 0.5);
-  
-  for (const comp of shuffled) {
-    if (totalCost + comp.manaCost <= availableMana && simpleComponents.length < 3) {
-      simpleComponents.push({ ...comp });
-      totalCost += comp.manaCost;
-    }
-  }
-  
-  return assignUniqueIds(simpleComponents);
+  // If we can't afford any strategy or none passed validation, return empty array (AI passes)
+  // We don't want AI to build random simple spells that might damage itself
+  return [];
 }
 
 function deepCloneComponents(components: SpellComponent[]): SpellComponent[] {

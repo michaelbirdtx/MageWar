@@ -26,22 +26,45 @@ export function createInitialGameState(): GameState {
   };
 }
 
-export function calculateSpellStats(components: SpellComponent[]): { damage: number; manaCost: number; effect: string } {
-  let damage = 0;
+export function calculateSpellStats(components: SpellComponent[]): { 
+  damage: number; 
+  manaCost: number; 
+  effect: string;
+  target: "self" | "opponent";
+  hasValidPropulsion: boolean;
+} {
+  let baseDamageSum = 0;
+  let damageMultiplierProduct = 1;
   let manaCost = 0;
+  let hasPropulsionInsideContainer = false;
   
-  const calcComponent = (comp: SpellComponent) => {
+  const calcComponent = (comp: SpellComponent, inContainer: boolean = false) => {
     manaCost += comp.manaCost;
-    damage += comp.manaCost * 2;
+    baseDamageSum += comp.baseDamage;
+    damageMultiplierProduct *= comp.damageMultiplier;
+    
+    if (comp.role === "propulsion" && inContainer) {
+      hasPropulsionInsideContainer = true;
+    }
     
     if (comp.children) {
-      comp.children.forEach(calcComponent);
+      comp.children.forEach(child => calcComponent(child, comp.role === "container"));
     }
   };
   
-  components.forEach(calcComponent);
+  components.forEach(comp => calcComponent(comp, false));
   
-  const hasContainer = components.some(c => c.type === "container" || c.children?.some(ch => ch.type === "container"));
+  // Cap multiplier to prevent extreme damage spikes
+  const cappedMultiplier = Math.min(damageMultiplierProduct, 10);
+  
+  // Calculate final damage with a hard cap at 100
+  const uncappedDamage = Math.floor(baseDamageSum * cappedMultiplier);
+  const damage = Math.min(uncappedDamage, 100);
+  
+  // Determine target: only targets opponent if propulsion is properly nested in container
+  const target = hasPropulsionInsideContainer ? "opponent" : "self";
+  
+  // Determine effect name
   const hasFire = components.some(c => c.element === "fire" || c.children?.some(ch => ch.element === "fire"));
   const hasWater = components.some(c => c.element === "water" || c.children?.some(ch => ch.element === "water"));
   const hasEarth = components.some(c => c.element === "earth" || c.children?.some(ch => ch.element === "earth"));
@@ -49,24 +72,14 @@ export function calculateSpellStats(components: SpellComponent[]): { damage: num
   
   let effect = "Basic Spell";
   
-  if (hasContainer && hasFire && hasEarth && hasAir) {
+  if (hasPropulsionInsideContainer && hasFire && hasEarth) {
     effect = "Fireball";
-    damage = Math.floor(damage * 1.5);
-  } else if (hasContainer && hasWater && hasAir) {
+  } else if (hasPropulsionInsideContainer && hasWater) {
     effect = "Frost Bolt";
-    damage = Math.floor(damage * 1.3);
   } else if (hasFire && hasWater) {
     effect = "Steam Blast";
-    damage = Math.floor(damage * 1.2);
   } else if (hasEarth && hasWater) {
-    effect = "Mud Missile";
-    damage = Math.floor(damage * 1.1);
-  } else if (hasFire && hasAir) {
-    effect = "Flame Gust";
-    damage = Math.floor(damage * 1.25);
-  } else if (hasEarth && hasAir) {
-    effect = "Sand Storm";
-    damage = Math.floor(damage * 1.15);
+    effect = "Mud Mixture";
   } else if (hasFire) {
     effect = "Fire Spell";
   } else if (hasWater) {
@@ -77,12 +90,58 @@ export function calculateSpellStats(components: SpellComponent[]): { damage: num
     effect = "Air Spell";
   }
   
-  return { damage, manaCost, effect };
+  return { 
+    damage, 
+    manaCost, 
+    effect,
+    target,
+    hasValidPropulsion: hasPropulsionInsideContainer
+  };
 }
 
 export function validateSpell(components: SpellComponent[], playerMana: number): { valid: boolean; error?: string } {
   if (components.length === 0) {
     return { valid: false, error: "Spell must have at least one component" };
+  }
+  
+  // Check for propulsion without container
+  const hasPropulsionOutsideContainer = (comps: SpellComponent[], inContainer: boolean = false): boolean => {
+    for (const comp of comps) {
+      if (comp.role === "propulsion" && !inContainer) {
+        return true;
+      }
+      if (comp.children && comp.role === "container") {
+        if (hasPropulsionOutsideContainer(comp.children, true)) {
+          return true;
+        }
+      } else if (comp.children) {
+        if (hasPropulsionOutsideContainer(comp.children, inContainer)) {
+          return true;
+        }
+      }
+    }
+    return false;
+  };
+  
+  if (hasPropulsionOutsideContainer(components)) {
+    return { valid: false, error: "Propulsion components can only be applied to containers" };
+  }
+  
+  // Check container capacity (max 4 children per container)
+  const checkContainerCapacity = (comps: SpellComponent[]): boolean => {
+    for (const comp of comps) {
+      if (comp.role === "container" && comp.children && comp.children.length > 4) {
+        return false;
+      }
+      if (comp.children && !checkContainerCapacity(comp.children)) {
+        return false;
+      }
+    }
+    return true;
+  };
+  
+  if (!checkContainerCapacity(components)) {
+    return { valid: false, error: "Containers can hold a maximum of 4 components" };
   }
   
   const { manaCost } = calculateSpellStats(components);
