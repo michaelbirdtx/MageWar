@@ -136,7 +136,7 @@ export default function SpellBuilder({
               <ComponentInBuilder
                 key={component.id}
                 component={component}
-                onRemove={() => removeComponent(component.id)}
+                removeComponent={removeComponent}
                 onDrop={handleDrop}
                 onDragOver={handleDragOver}
                 onDragLeave={handleDragLeave}
@@ -202,14 +202,14 @@ export default function SpellBuilder({
 
 function ComponentInBuilder({
   component,
-  onRemove,
+  removeComponent,
   onDrop,
   onDragOver,
   onDragLeave,
   isDragOver,
 }: {
   component: SpellComponent;
-  onRemove: () => void;
+  removeComponent: (componentId: string, parentId?: string) => void;
   onDrop: (e: React.DragEvent, parentId?: string) => void;
   onDragOver: (e: React.DragEvent, index?: number, parentId?: string) => void;
   onDragLeave: (e: React.DragEvent) => void;
@@ -235,7 +235,7 @@ function ComponentInBuilder({
           variant="ghost"
           size="icon"
           className="opacity-0 group-hover:opacity-100 transition-opacity"
-          onClick={onRemove}
+          onClick={() => removeComponent(component.id)}
           data-testid={`button-remove-${component.id}`}
         >
           <X className="w-4 h-4" />
@@ -254,10 +254,19 @@ function ComponentInBuilder({
           {component.children && component.children.length > 0 ? (
             <div className="flex flex-col gap-2">
               {component.children.map((child) => (
-                <div key={child.id} className={`flex items-center gap-2 p-2 rounded-md border ${elementBg} ${elementBorder}`}>
+                <div key={child.id} className={`flex items-center gap-2 p-2 rounded-md border ${elementBg} ${elementBorder} relative group`}>
                   <ElementIcon element={child.element} className={`w-4 h-4 ${ELEMENT_COLORS[child.element]}`} />
                   <span className={`text-xs font-medium ${ELEMENT_COLORS[child.element]}`}>{child.name}</span>
                   <span className="text-xs ml-auto text-muted-foreground">{child.manaCost}m</span>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="opacity-0 group-hover:opacity-100 transition-opacity h-6 w-6"
+                    onClick={() => removeComponent(child.id, component.id)}
+                    data-testid={`button-remove-child-${child.id}`}
+                  >
+                    <X className="w-3 h-3" />
+                  </Button>
                 </div>
               ))}
             </div>
