@@ -117,6 +117,8 @@ Preferred communication style: Simple, everyday language.
 - Spells are composable trees of components (containers can hold children)
 - Enables complex spell interactions and emergent gameplay
 - Drag-and-drop interaction pattern matches card-game inspiration
+- Child components can be individually removed from containers without deleting the parent
+- Hover-activated remove buttons on both parent and child components for flexible spell editing
 
 **Session-Based State Management**
 - Each game session has unique ID with isolated state

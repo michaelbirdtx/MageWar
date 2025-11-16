@@ -72,14 +72,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       // Calculate spell effects
-      console.log("[CAST] Components received:", JSON.stringify(components, null, 2));
       const { damage, manaCost, effect, target } = calculateSpellStats(components);
-      console.log("[CAST] Calculated - damage:", damage, "mana:", manaCost, "target:", target);
       
       // Apply damage and mana cost
       gameState.player = consumeMana(gameState.player, manaCost);
       gameState = applyCombatDamage(gameState, damage, target === "opponent" ? "opponent" : "player");
-      console.log("[CAST] After damage - player HP:", gameState.player.health, "opponent HP:", gameState.opponent.health);
       gameState.gamePhase = "combat";
       
       await storage.updateGameState(sessionId, gameState);
