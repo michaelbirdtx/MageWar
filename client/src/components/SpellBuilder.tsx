@@ -187,7 +187,7 @@ export default function SpellBuilder({
             <Button
               onClick={onCastSpell}
               disabled={!canCast}
-              className="font-semibold"
+              className="font-semibold text-[12px] pl-[12px] pr-[12px]"
               data-testid="button-cast-spell"
             >
               <Sparkles className="w-4 h-4 mr-2" />
