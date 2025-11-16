@@ -113,7 +113,6 @@ export default function SpellBuilder({
           </Button>
         )}
       </div>
-      
       <Card
         className={`min-h-80 p-6 border-2 transition-all ${
           components.length === 0 
@@ -146,7 +145,6 @@ export default function SpellBuilder({
           </div>
         )}
       </Card>
-      
       {components.length > 0 && (
         <Card className="p-4 bg-muted/30">
           {validationError && (
@@ -162,7 +160,7 @@ export default function SpellBuilder({
             </div>
           )}
           <div className="flex items-center justify-between">
-            <div className="flex gap-6">
+            <div className="flex gap-6 text-[12px] font-bold">
               <div>
                 <p className="text-xs text-muted-foreground">Effect</p>
                 <p className="font-semibold" data-testid="text-spell-effect">{effect}</p>
