@@ -1,4 +1,4 @@
-import { GameState, Mage, SpellComponent, Spell } from "@shared/schema";
+import { GameState, Mage, SpellComponent, Spell, ElementType } from "@shared/schema";
 import { randomUUID } from "crypto";
 
 export function createInitialGameState(): GameState {
@@ -32,27 +32,76 @@ export function calculateSpellStats(components: SpellComponent[]): {
   effect: string;
   target: "self" | "opponent";
   hasValidPropulsion: boolean;
+  clashingContainers?: string[];
 } {
   let baseDamageSum = 0;
   let damageMultiplierProduct = 1;
   let manaCost = 0;
   let hasPropulsionInsideContainer = false;
+  const clashingContainers: string[] = [];
+  const activeElements = new Set<ElementType>();
+
+  // Helper to check if a container has clashing elements (Fire + Water)
+  const hasClash = (container: SpellComponent): boolean => {
+    if (!container.children || container.children.length === 0) return false;
+    
+    const hasFire = container.children.some(c => c.element === "fire");
+    const hasWater = container.children.some(c => c.element === "water");
+    
+    return hasFire && hasWater;
+  };
   
-  const calcComponent = (comp: SpellComponent, inContainer: boolean = false) => {
+  const calcComponent = (
+    comp: SpellComponent, 
+    inContainer: boolean = false,
+    parentContainer?: SpellComponent,
+    ancestorNeutralized: boolean = false,
+  ) => {
+    // Always add mana cost
     manaCost += comp.manaCost;
-    baseDamageSum += comp.baseDamage;
-    damageMultiplierProduct *= comp.damageMultiplier;
+    
+    // Check if this component should be neutralized
+    // A component is neutralized if:
+    // 1. It's a Fire or Water direct child of a clashing container, OR
+    // 2. Any of its ancestors were neutralized
+    const shouldNeutralize = 
+      ancestorNeutralized ||
+      (parentContainer && 
+       hasClash(parentContainer) && 
+       (comp.element === "fire" || comp.element === "water"));
+    
+    if (shouldNeutralize) {
+      // Neutralized: no baseDamage, multiplier becomes 1 (neutral)
+      baseDamageSum += 0;
+      damageMultiplierProduct *= 1;
+      // Don't count neutralized elements as active
+    } else {
+      // Normal calculation
+      baseDamageSum += comp.baseDamage;
+      damageMultiplierProduct *= comp.damageMultiplier;
+      // Track this element as active (not neutralized)
+      activeElements.add(comp.element);
+    }
     
     if (comp.role === "propulsion" && inContainer) {
       hasPropulsionInsideContainer = true;
     }
     
     if (comp.children) {
-      comp.children.forEach(child => calcComponent(child, comp.role === "container"));
+      // Check if this container has clashing elements
+      const isClashing = comp.role === "container" && hasClash(comp);
+      if (isClashing) {
+        clashingContainers.push(comp.name);
+      }
+      
+      // Only pass this component as parent if it's a container
+      // This ensures only DIRECT children of clashing containers are neutralized
+      const containerForChildren = comp.role === "container" ? comp : undefined;
+      comp.children.forEach(child => calcComponent(child, comp.role === "container", containerForChildren, shouldNeutralize));
     }
   };
   
-  components.forEach(comp => calcComponent(comp, false));
+  components.forEach(comp => calcComponent(comp, false, undefined, false));
   
   // Cap multiplier to prevent extreme damage spikes
   const cappedMultiplier = Math.min(damageMultiplierProduct, 10);
@@ -64,11 +113,11 @@ export function calculateSpellStats(components: SpellComponent[]): {
   // Determine target: only targets opponent if propulsion is properly nested in container
   const target = hasPropulsionInsideContainer ? "opponent" : "self";
   
-  // Determine effect name
-  const hasFire = components.some(c => c.element === "fire" || c.children?.some(ch => ch.element === "fire"));
-  const hasWater = components.some(c => c.element === "water" || c.children?.some(ch => ch.element === "water"));
-  const hasEarth = components.some(c => c.element === "earth" || c.children?.some(ch => ch.element === "earth"));
-  const hasAir = components.some(c => c.element === "air" || c.children?.some(ch => ch.element === "air"));
+  // Determine effect name based on ACTIVE (non-neutralized) elements
+  const hasFire = activeElements.has("fire");
+  const hasWater = activeElements.has("water");
+  const hasEarth = activeElements.has("earth");
+  const hasAir = activeElements.has("air");
   
   let effect = "Basic Spell";
   
@@ -95,7 +144,8 @@ export function calculateSpellStats(components: SpellComponent[]): {
     manaCost, 
     effect,
     target,
-    hasValidPropulsion: hasPropulsionInsideContainer
+    hasValidPropulsion: hasPropulsionInsideContainer,
+    clashingContainers: clashingContainers.length > 0 ? clashingContainers : undefined,
   };
 }
 

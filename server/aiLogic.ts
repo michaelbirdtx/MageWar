@@ -109,8 +109,12 @@ export function generateAISpell(availableMana: number, difficulty: number = 0.7)
     const components = deepCloneComponents(strategy.components);
     const stats = calculateSpellStats(components);
     
-    // Ensure spell costs within budget AND targets opponent
-    if (stats.manaCost <= availableMana && stats.target === "opponent") {
+    // Ensure spell costs within budget, targets opponent, AND has no clashing elements
+    if (
+      stats.manaCost <= availableMana && 
+      stats.target === "opponent" &&
+      !stats.clashingContainers
+    ) {
       // Add some randomness based on difficulty
       if (Math.random() < difficulty) {
         return assignUniqueIds(components);

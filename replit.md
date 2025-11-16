@@ -135,3 +135,11 @@ Preferred communication style: Simple, everyday language.
 - All combat calculations and validation happen server-side
 - Prevents client-side cheating and maintains game integrity
 - Client receives only authorized state updates
+
+**Elemental Clashing System** (Added November 16, 2025)
+- Fire + Water elements neutralize each other when in the SAME container
+- Clash detection: Checks each container's children for both Fire and Water elements
+- Neutralization: Clashing components have baseDamage=0 and damageMultiplier=1 (mana costs preserved)
+- UI Feedback: Orange warning shows affected container names when clash detected
+- AI Prevention: AI avoids creating spells with clashing elements in containers
+- Separate containers: Fire in one container + Water in another = No clash (works normally)
