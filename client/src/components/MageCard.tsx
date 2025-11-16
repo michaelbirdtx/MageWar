@@ -1,8 +1,10 @@
 import { Mage } from "@shared/schema";
 import { Card } from "@/components/ui/card";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { Heart, Sparkles } from "lucide-react";
+import { Heart, Sparkles, Flame, Droplet, Brain, Activity, Lightbulb } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
+import { Badge } from "@/components/ui/badge";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 
 interface MageCardProps {
   mage: Mage;
@@ -14,6 +16,16 @@ export default function MageCard({ mage, showTurnIndicator }: MageCardProps) {
   const manaPercent = (mage.mana / mage.maxMana) * 100;
   const initials = mage.name.split(" ").map(n => n[0]).join("").toUpperCase();
   
+  const specializationIcon = mage.specialization === "pyromancer" ? (
+    <Flame className="w-3 h-3" />
+  ) : (
+    <Droplet className="w-3 h-3" />
+  );
+  
+  const specializationColor = mage.specialization === "pyromancer" 
+    ? "bg-red-100 dark:bg-red-950 text-red-700 dark:text-red-300 border-red-300 dark:border-red-700"
+    : "bg-blue-100 dark:bg-blue-950 text-blue-700 dark:text-blue-300 border-blue-300 dark:border-blue-700";
+  
   return (
     <Card className={`p-5 ${showTurnIndicator ? "border-primary border-2" : ""}`} data-testid={`card-mage-${mage.id}`}>
       <div className="flex items-center gap-4 mb-4">
@@ -24,8 +36,49 @@ export default function MageCard({ mage, showTurnIndicator }: MageCardProps) {
         </Avatar>
         <div className="flex-1">
           <h3 className="font-serif font-semibold text-lg" data-testid={`text-mage-name-${mage.id}`}>{mage.name}</h3>
-          <p className="text-sm text-muted-foreground">{mage.isPlayer ? "Player" : "Opponent"}</p>
+          <div className="flex items-center gap-2 mt-1">
+            <Badge 
+              variant="outline" 
+              className={`text-xs ${specializationColor}`}
+              data-testid={`badge-specialization-${mage.id}`}
+            >
+              {specializationIcon}
+              <span className="ml-1 capitalize">{mage.specialization}</span>
+            </Badge>
+          </div>
         </div>
+      </div>
+      
+      <div className="flex items-center gap-2 mb-3">
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <div className="flex items-center gap-1 px-2 py-1 rounded-md bg-muted/50 text-xs" data-testid={`stat-intellect-${mage.id}`}>
+              <Brain className="w-3 h-3 text-purple-500" />
+              <span className="font-semibold">{mage.intellect}</span>
+            </div>
+          </TooltipTrigger>
+          <TooltipContent>Intellect (Max Mana)</TooltipContent>
+        </Tooltip>
+        
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <div className="flex items-center gap-1 px-2 py-1 rounded-md bg-muted/50 text-xs" data-testid={`stat-stamina-${mage.id}`}>
+              <Activity className="w-3 h-3 text-green-500" />
+              <span className="font-semibold">{mage.stamina}</span>
+            </div>
+          </TooltipTrigger>
+          <TooltipContent>Stamina (Max Health)</TooltipContent>
+        </Tooltip>
+        
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <div className="flex items-center gap-1 px-2 py-1 rounded-md bg-muted/50 text-xs" data-testid={`stat-wisdom-${mage.id}`}>
+              <Lightbulb className="w-3 h-3 text-amber-500" />
+              <span className="font-semibold">{mage.wisdom}</span>
+            </div>
+          </TooltipTrigger>
+          <TooltipContent>Wisdom (Mana Regen: +{mage.manaRegen}/turn)</TooltipContent>
+        </Tooltip>
       </div>
       
       <div className="flex flex-col gap-3">

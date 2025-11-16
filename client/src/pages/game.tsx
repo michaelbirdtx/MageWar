@@ -1,13 +1,14 @@
 import { useState, useEffect } from "react";
-import { SpellComponent, GameState } from "@shared/schema";
+import { SpellComponent, GameState, Specialization } from "@shared/schema";
 import ComponentLibrary from "@/components/ComponentLibrary";
 import SpellBuilder from "@/components/SpellBuilder";
 import BattleArena from "@/components/BattleArena";
 import TutorialDialog from "@/components/TutorialDialog";
+import CharacterCreator from "@/components/CharacterCreator";
 import { Button } from "@/components/ui/button";
 import { HelpCircle, Moon, Sun, RotateCcw } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { createNewGame, castSpell, executeAITurn, deleteGame } from "@/lib/gameApi";
+import { createNewGame, castSpell, executeAITurn, deleteGame, CharacterData } from "@/lib/gameApi";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -29,6 +30,7 @@ export default function GamePage() {
   const [isLoading, setIsLoading] = useState(false);
   const [showVictoryDialog, setShowVictoryDialog] = useState(false);
   const [showDefeatDialog, setShowDefeatDialog] = useState(false);
+  const [showCharacterCreator, setShowCharacterCreator] = useState(true);
   const { toast } = useToast();
   
   useEffect(() => {
@@ -39,9 +41,6 @@ export default function GamePage() {
     }
   }, [isDark]);
   
-  useEffect(() => {
-    initializeGame();
-  }, []);
   
   useEffect(() => {
     if (gameState?.gamePhase === "victory") {
@@ -51,12 +50,13 @@ export default function GamePage() {
     }
   }, [gameState?.gamePhase]);
   
-  const initializeGame = async () => {
+  const initializeGame = async (characterData: CharacterData) => {
     try {
       setIsLoading(true);
-      const { sessionId: newSessionId, gameState: newGameState } = await createNewGame();
+      const { sessionId: newSessionId, gameState: newGameState } = await createNewGame(characterData);
       setSessionId(newSessionId);
       setGameState(newGameState);
+      setShowCharacterCreator(false);
     } catch (error) {
       toast({
         title: "Error",
@@ -66,6 +66,10 @@ export default function GamePage() {
     } finally {
       setIsLoading(false);
     }
+  };
+  
+  const handleCharacterComplete = (characterData: CharacterData) => {
+    initializeGame(characterData);
   };
   
   const handleCastSpell = async () => {
@@ -156,22 +160,28 @@ export default function GamePage() {
     }
     setShowVictoryDialog(false);
     setShowDefeatDialog(false);
-    await initializeGame();
+    setGameState(null);
+    setSessionId(null);
+    setShowCharacterCreator(true);
   };
   
-  if (isLoading && !gameState) {
+  if (showCharacterCreator || !gameState) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
-          <p className="text-muted-foreground">Initializing game...</p>
-        </div>
+      <div className="min-h-screen bg-background">
+        <CharacterCreator 
+          open={showCharacterCreator && !isLoading} 
+          onComplete={handleCharacterComplete} 
+        />
+        {isLoading && (
+          <div className="min-h-screen flex items-center justify-center">
+            <div className="text-center">
+              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+              <p className="text-muted-foreground">Initializing game...</p>
+            </div>
+          </div>
+        )}
       </div>
     );
-  }
-  
-  if (!gameState) {
-    return null;
   }
   
   return (

@@ -1,32 +1,92 @@
-import { GameState, Mage, SpellComponent, Spell } from "@shared/schema";
+import { GameState, Mage, SpellComponent, Spell, Specialization } from "@shared/schema";
 import { randomUUID } from "crypto";
 
-export function createInitialGameState(): GameState {
+export interface CharacterAttributes {
+  name: string;
+  intellect: number;
+  stamina: number;
+  wisdom: number;
+  specialization: Specialization;
+}
+
+function calculateMaxHealth(stamina: number): number {
+  // Base health of 50, +10 per stamina point
+  return 50 + (stamina * 10);
+}
+
+function calculateMaxMana(intellect: number): number {
+  // Base mana of 40, +8 per intellect point
+  return 40 + (intellect * 8);
+}
+
+function calculateManaRegen(wisdom: number): number {
+  // Base regen of 5, +2 per wisdom point
+  return 5 + (wisdom * 2);
+}
+
+function createMageFromAttributes(attributes: CharacterAttributes, isPlayer: boolean): Mage {
+  const maxHealth = calculateMaxHealth(attributes.stamina);
+  const maxMana = calculateMaxMana(attributes.intellect);
+  const manaRegen = calculateManaRegen(attributes.wisdom);
+  
   return {
-    player: {
-      id: randomUUID(),
-      name: "Player Mage",
-      health: 100,
-      maxHealth: 100,
-      mana: 100,
-      maxMana: 100,
-      isPlayer: true,
-    },
-    opponent: {
-      id: randomUUID(),
-      name: "Dark Sorcerer",
-      health: 100,
-      maxHealth: 100,
-      mana: 100,
-      maxMana: 100,
-      isPlayer: false,
-    },
+    id: randomUUID(),
+    name: attributes.name,
+    health: maxHealth,
+    maxHealth,
+    mana: maxMana,
+    maxMana,
+    manaRegen,
+    intellect: attributes.intellect,
+    stamina: attributes.stamina,
+    wisdom: attributes.wisdom,
+    specialization: attributes.specialization,
+    isPlayer,
+  };
+}
+
+function generateAICharacterAttributes(): CharacterAttributes {
+  // AI chooses specialization randomly
+  const specializations: Specialization[] = ["pyromancer", "aquamancer"];
+  const specialization = specializations[Math.floor(Math.random() * specializations.length)];
+  
+  // AI distributes 6 free points strategically
+  // For pyromancers: prioritize intellect (more mana for fire spells)
+  // For aquamancers: prioritize intellect and wisdom (mana and regen)
+  const baseAttributes = { intellect: 10, stamina: 10, wisdom: 10 };
+  
+  if (specialization === "pyromancer") {
+    baseAttributes.intellect += 3; // More mana for aggressive fire spells
+    baseAttributes.stamina += 2;   // Some survivability
+    baseAttributes.wisdom += 1;    // Minimal regen
+  } else {
+    baseAttributes.intellect += 2; // Good mana pool
+    baseAttributes.stamina += 2;   // Balanced survivability
+    baseAttributes.wisdom += 2;    // Good mana regen for sustained combat
+  }
+  
+  return {
+    name: "Dark Sorcerer",
+    ...baseAttributes,
+    specialization,
+  };
+}
+
+export function createInitialGameState(playerAttributes: CharacterAttributes): GameState {
+  const aiAttributes = generateAICharacterAttributes();
+  
+  return {
+    player: createMageFromAttributes(playerAttributes, true),
+    opponent: createMageFromAttributes(aiAttributes, false),
     currentTurn: "player",
     gamePhase: "building",
   };
 }
 
-export function calculateSpellStats(components: SpellComponent[]): { 
+export function calculateSpellStats(
+  components: SpellComponent[], 
+  specialization?: Specialization
+): { 
   damage: number; 
   manaCost: number; 
   effect: string;
@@ -39,7 +99,15 @@ export function calculateSpellStats(components: SpellComponent[]): {
   let hasPropulsionInsideContainer = false;
   
   const calcComponent = (comp: SpellComponent, inContainer: boolean = false) => {
-    manaCost += comp.manaCost;
+    // Apply specialization cost reduction (20% reduction for matching element)
+    let componentCost = comp.manaCost;
+    if (specialization === "pyromancer" && comp.element === "fire") {
+      componentCost = Math.floor(componentCost * 0.8);
+    } else if (specialization === "aquamancer" && comp.element === "water") {
+      componentCost = Math.floor(componentCost * 0.8);
+    }
+    manaCost += componentCost;
+    
     baseDamageSum += comp.baseDamage;
     damageMultiplierProduct *= comp.damageMultiplier;
     
@@ -57,8 +125,22 @@ export function calculateSpellStats(components: SpellComponent[]): {
   // Cap multiplier to prevent extreme damage spikes
   const cappedMultiplier = Math.min(damageMultiplierProduct, 10);
   
-  // Calculate final damage with a hard cap at 100
-  const uncappedDamage = Math.floor(baseDamageSum * cappedMultiplier);
+  // Calculate base damage
+  let uncappedDamage = Math.floor(baseDamageSum * cappedMultiplier);
+  
+  // Apply specialization damage bonus (20% increase for matching element)
+  if (specialization) {
+    const hasMatchingElement = (element: string) => 
+      components.some(c => c.element === element || c.children?.some(ch => ch.element === element));
+    
+    if (specialization === "pyromancer" && hasMatchingElement("fire")) {
+      uncappedDamage = Math.floor(uncappedDamage * 1.2);
+    } else if (specialization === "aquamancer" && hasMatchingElement("water")) {
+      uncappedDamage = Math.floor(uncappedDamage * 1.2);
+    }
+  }
+  
+  // Apply hard cap at 100
   const damage = Math.min(uncappedDamage, 100);
   
   // Determine target: only targets opponent if propulsion is properly nested in container
@@ -99,7 +181,11 @@ export function calculateSpellStats(components: SpellComponent[]): {
   };
 }
 
-export function validateSpell(components: SpellComponent[], playerMana: number): { valid: boolean; error?: string } {
+export function validateSpell(
+  components: SpellComponent[], 
+  playerMana: number,
+  specialization?: Specialization
+): { valid: boolean; error?: string } {
   if (components.length === 0) {
     return { valid: false, error: "Spell must have at least one component" };
   }
@@ -144,7 +230,7 @@ export function validateSpell(components: SpellComponent[], playerMana: number):
     return { valid: false, error: "Containers can hold a maximum of 4 components" };
   }
   
-  const { manaCost } = calculateSpellStats(components);
+  const { manaCost } = calculateSpellStats(components, specialization);
   
   if (manaCost > playerMana) {
     return { valid: false, error: `Not enough mana. Need ${manaCost}, have ${playerMana}` };
@@ -199,7 +285,7 @@ export function switchTurn(state: GameState): GameState {
   return {
     ...state,
     currentTurn: newTurn,
-    player: newTurn === "player" ? restoreMana(state.player, 15) : state.player,
-    opponent: newTurn === "opponent" ? restoreMana(state.opponent, 15) : state.opponent,
+    player: newTurn === "player" ? restoreMana(state.player, state.player.manaRegen) : state.player,
+    opponent: newTurn === "opponent" ? restoreMana(state.opponent, state.opponent.manaRegen) : state.opponent,
   };
 }

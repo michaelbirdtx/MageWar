@@ -19,6 +19,7 @@ export type User = typeof users.$inferSelect;
 
 export type ElementType = "fire" | "water" | "earth" | "air";
 export type ComponentRole = "activation" | "propulsion" | "container" | "material";
+export type Specialization = "pyromancer" | "aquamancer";
 
 export interface SpellComponent {
   id: string;
@@ -49,6 +50,11 @@ export interface Mage {
   maxHealth: number;
   mana: number;
   maxMana: number;
+  manaRegen: number;
+  intellect: number;
+  stamina: number;
+  wisdom: number;
+  specialization: Specialization;
   isPlayer: boolean;
 }
 

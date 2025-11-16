@@ -7,7 +7,8 @@ import {
   validateSpell, 
   applyCombatDamage,
   consumeMana,
-  switchTurn
+  switchTurn,
+  CharacterAttributes
 } from "./gameLogic";
 import { generateAISpell, getAIDifficulty } from "./aiLogic";
 import { SpellComponent, GameState } from "@shared/schema";
@@ -17,8 +18,62 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Initialize a new game
   app.post("/api/game/new", async (req, res) => {
     try {
+      const { characterData } = req.body as { characterData: CharacterAttributes };
+      
+      if (!characterData) {
+        return res.status(400).json({ error: "Character data is required" });
+      }
+      
+      // Validate name is a non-empty string
+      if (typeof characterData.name !== "string" || !characterData.name.trim()) {
+        return res.status(400).json({ error: "Name must be a non-empty string" });
+      }
+      
+      // Validate specialization is one of the allowed values
+      const validSpecializations = ["pyromancer", "aquamancer"];
+      if (!validSpecializations.includes(characterData.specialization)) {
+        return res.status(400).json({ error: "Specialization must be either 'pyromancer' or 'aquamancer'" });
+      }
+      
+      // Validate attribute bounds and point budget
+      const { intellect, stamina, wisdom } = characterData;
+      const MIN_ATTRIBUTE = 6;
+      const BASE_ATTRIBUTE = 10;
+      const FREE_POINTS = 6;
+      const MAX_ATTRIBUTE = BASE_ATTRIBUTE + FREE_POINTS; // 16 max per attribute
+      const MAX_TOTAL_ATTRIBUTES = (3 * BASE_ATTRIBUTE) + FREE_POINTS; // 36 total points
+      
+      // Ensure all attributes are valid finite numbers
+      if (!Number.isFinite(intellect) || !Number.isFinite(stamina) || !Number.isFinite(wisdom)) {
+        return res.status(400).json({ error: "All attributes must be valid numbers" });
+      }
+      
+      // Ensure all attributes are integers
+      if (!Number.isInteger(intellect) || !Number.isInteger(stamina) || !Number.isInteger(wisdom)) {
+        return res.status(400).json({ error: "All attributes must be integers" });
+      }
+      
+      // Check minimum and maximum bounds per attribute
+      if (intellect < MIN_ATTRIBUTE || stamina < MIN_ATTRIBUTE || wisdom < MIN_ATTRIBUTE) {
+        return res.status(400).json({ error: "Attributes cannot be below minimum value" });
+      }
+      
+      if (intellect > MAX_ATTRIBUTE || stamina > MAX_ATTRIBUTE || wisdom > MAX_ATTRIBUTE) {
+        return res.status(400).json({ error: "Attributes cannot exceed maximum value" });
+      }
+      
+      // Validate total attribute sum (prevents redistribution exploits)
+      const totalAttributes = intellect + stamina + wisdom;
+      if (!Number.isFinite(totalAttributes)) {
+        return res.status(400).json({ error: "Invalid attribute sum" });
+      }
+      
+      if (totalAttributes > MAX_TOTAL_ATTRIBUTES) {
+        return res.status(400).json({ error: "Total attributes exceed maximum allowed" });
+      }
+      
       const sessionId = randomUUID();
-      const gameState = createInitialGameState();
+      const gameState = createInitialGameState(characterData);
       
       await storage.updateGameState(sessionId, gameState);
       
@@ -66,13 +121,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       // Validate spell
-      const validation = validateSpell(components, gameState.player.mana);
+      const validation = validateSpell(components, gameState.player.mana, gameState.player.specialization);
       if (!validation.valid) {
         return res.status(400).json({ error: validation.error });
       }
       
       // Calculate spell effects
-      const { damage, manaCost, effect, target } = calculateSpellStats(components);
+      const { damage, manaCost, effect, target } = calculateSpellStats(components, gameState.player.specialization);
       
       // Apply damage and mana cost
       gameState.player = consumeMana(gameState.player, manaCost);
@@ -121,7 +176,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
       
       // Calculate AI spell effects
-      const { damage, manaCost, effect, target } = calculateSpellStats(aiComponents);
+      const { damage, manaCost, effect, target } = calculateSpellStats(aiComponents, gameState.opponent.specialization);
       
       // Apply AI spell (AI should always target player, but check just in case)
       gameState.opponent = consumeMana(gameState.opponent, manaCost);

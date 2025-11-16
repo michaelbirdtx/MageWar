@@ -1,4 +1,12 @@
-import { GameState, SpellComponent } from "@shared/schema";
+import { GameState, SpellComponent, Specialization } from "@shared/schema";
+
+export interface CharacterData {
+  name: string;
+  intellect: number;
+  stamina: number;
+  wisdom: number;
+  specialization: Specialization;
+}
 
 export interface CastSpellResponse {
   gameState: GameState;
@@ -22,10 +30,11 @@ export interface AITurnResponse {
   aiPassed?: boolean;
 }
 
-export async function createNewGame(): Promise<{ sessionId: string; gameState: GameState }> {
+export async function createNewGame(characterData: CharacterData): Promise<{ sessionId: string; gameState: GameState }> {
   const response = await fetch("/api/game/new", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ characterData }),
   });
   
   if (!response.ok) {
