@@ -155,3 +155,22 @@ Preferred communication style: Simple, everyday language.
 - Both client-side UI guards and server-side validation prevent stat inflation
 - AI strategically generates character builds matching combat style and specialization
 - Date implemented: November 16, 2025
+
+**Win Condition System**
+- Implemented atomic simultaneous damage resolution with correct victory/defeat/tie detection
+- **Game Phase Values**: "building" | "combat" | "victory" | "defeat" | "tie"
+- **Core Functions** (server/gameLogic.ts):
+  - `applySimultaneousDamage(state, damageToPlayer, damageToOpponent)`: Applies both damages in single atomic operation
+  - `checkGameEnd(state)`: Examines both health values after damage to determine outcome
+    - Both <= 0 → "tie"
+    - Only player <= 0 → "defeat"
+    - Only opponent <= 0 → "victory"
+- **Combat Resolution Flow**:
+  1. Accumulate damage from both player and AI spells
+  2. Apply all damage simultaneously via applySimultaneousDamage
+  3. Call checkGameEnd to determine game outcome
+  4. Set gamePhase to "combat" only if game continues
+- **Frontend Dialogs**: Three end-game dialogs (victory, defeat, tie) automatically shown based on gamePhase
+- Ensures correct tie detection when both combatants reach 0 health in same round
+- Fixes bug where victories weren't announced due to sequential damage application
+- Date implemented: November 17, 2025
