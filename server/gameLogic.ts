@@ -104,9 +104,14 @@ export function calculateSpellStats(
   let totalShield = 0;
   let totalHealing = 0;
   let totalManaCost = 0;
+  let totalBonus = 0;
   let hasPropulsionInsideContainer = false;
   const allElements = new Set<string>();
+  const allMaterials = new Set<string>();
   const effectTypes = new Set<string>();
+  const damageSpellNames: string[] = [];
+  const shieldSpellNames: string[] = [];
+  const healingSpellNames: string[] = [];
 
   // Process each top-level container
   components.forEach((comp) => {
@@ -118,7 +123,30 @@ export function calculateSpellStats(
     
     if (result.hasPropulsion) hasPropulsionInsideContainer = true;
     result.elements.forEach(e => allElements.add(e));
+    result.materials.forEach(m => allMaterials.add(m));
     if (result.effectType) effectTypes.add(result.effectType);
+    
+    // Generate spell name per-container based on its own materials
+    const containerElements = Array.from(result.elements);
+    const containerMaterials = result.materials;
+    const containerEffectType = new Set<string>([result.effectType]);
+    const { effectName, bonus } = determineEffectNameBackend(
+      containerElements, 
+      containerEffectType, 
+      result.hasPropulsion, 
+      containerMaterials
+    );
+    
+    totalBonus += bonus;
+    
+    // Categorize names by effect type
+    if (result.effectType === "damage" && result.hasPropulsion) {
+      damageSpellNames.push(effectName);
+    } else if (result.effectType === "shield") {
+      shieldSpellNames.push(effectName);
+    } else if (result.effectType === "healing") {
+      healingSpellNames.push(effectName);
+    }
   });
 
   function processContainer(comp: SpellComponent, spec?: Specialization): {
@@ -128,6 +156,7 @@ export function calculateSpellStats(
     manaCost: number;
     hasPropulsion: boolean;
     elements: Set<string>;
+    materials: Set<string>;
     effectType: string;
   } {
     let baseDamage = comp.baseDamage;
@@ -137,6 +166,7 @@ export function calculateSpellStats(
     let componentCost = comp.manaCost;
     let hasPropulsion = false;
     const elements = new Set<string>([comp.element]);
+    const materials = new Set<string>();
     let effectType = comp.effectType || "damage";
 
     // Apply specialization cost reduction
@@ -168,7 +198,9 @@ export function calculateSpellStats(
         
         elements.add(child.element);
         childElements.add(child.element);
-        childMaterials.push(child.baseId || child.id); // Use baseId for pattern matching
+        const materialId = child.baseId || child.id;
+        childMaterials.push(materialId); // Use baseId for pattern matching
+        materials.add(materialId);
         
         if (child.role === "propulsion" && comp.role === "container") {
           hasPropulsion = true;
@@ -228,32 +260,44 @@ export function calculateSpellStats(
       manaCost,
       hasPropulsion,
       elements,
+      materials,
       effectType,
     };
   }
 
   const target = hasPropulsionInsideContainer ? "opponent" : "self";
 
-  // Determine effect name and bonus (simplified version for backend)
-  const elementsArray = Array.from(allElements);
-  const { effectName, bonus } = determineEffectNameBackend(elementsArray, effectTypes, hasPropulsionInsideContainer);
+  // Combine spell names from all containers
+  let finalEffectName = "Unknown Spell";
+  const allSpellNames = [...damageSpellNames, ...shieldSpellNames, ...healingSpellNames];
+  
+  if (allSpellNames.length > 0) {
+    finalEffectName = allSpellNames.join(" + ");
+  }
+
+  // Add multi-spell bonuses
+  if (damageSpellNames.length > 0 && shieldSpellNames.length > 0) totalBonus += 2;
+  if (damageSpellNames.length > 0 && healingSpellNames.length > 0) totalBonus += 2;
+  if (shieldSpellNames.length > 0 && healingSpellNames.length > 0) totalBonus += 2;
+  if (damageSpellNames.length > 0 && shieldSpellNames.length > 0 && healingSpellNames.length > 0) totalBonus += 3;
 
   return { 
     damage: totalDamage, 
     shieldPower: totalShield,
     healingPower: totalHealing,
     manaCost: totalManaCost, 
-    effect: effectName,
+    effect: finalEffectName,
     target,
     hasValidPropulsion: hasPropulsionInsideContainer,
-    bonus,
+    bonus: totalBonus,
   };
 }
 
 function determineEffectNameBackend(
   elements: string[],
   effectTypes: Set<string>,
-  hasPropulsion: boolean
+  hasPropulsion: boolean,
+  materials: Set<string>
 ): { effectName: string; bonus: number } {
   const hasFire = elements.includes("fire");
   const hasWater = elements.includes("water");
@@ -263,40 +307,153 @@ function determineEffectNameBackend(
   const hasHealing = effectTypes.has("healing");
   const hasDamage = effectTypes.has("damage");
 
+  // Helper function to check if materials include all specified components
+  const has = (...mats: string[]) => mats.every(m => materials.has(m));
+
   let effectName = "Unknown Spell";
   let bonus = 0;
 
-  // Creative multi-element combinations
-  if (hasFire && hasWater && hasAir && hasPropulsion) {
-    effectName = "Tempest Storm";
-    bonus = 5;
-  } else if (hasFire && hasEarth && hasWater && hasPropulsion) {
-    effectName = "Lava Burst";
-    bonus = 5;
-  } else if (hasWater && hasAir && hasPropulsion) {
-    effectName = "Blizzard";
-    bonus = 3;
-  } else if (hasFire && hasWater && hasPropulsion) {
-    effectName = "Steam Blast";
-    bonus = 3;
-  } else if (hasEarth && hasWater && hasPropulsion) {
-    effectName = "Mud Torrent";
-    bonus = 2;
-  } else if (hasFire && hasEarth && hasPropulsion) {
-    effectName = "Fireball";
-  } else if (hasWater && hasPropulsion) {
-    effectName = "Frost Bolt";
-  } else if (hasFire && hasPropulsion) {
-    effectName = "Fire Blast";
-  } else if (hasEarth && hasPropulsion) {
-    effectName = "Stone Strike";
-  } else if (hasAir && hasPropulsion) {
-    effectName = "Wind Blast";
+  // DAMAGE SPELLS: Check specific material combinations first (most specific → least specific)
+  if (hasDamage && hasPropulsion) {
+    // 4+ Material Combinations (highest specificity)
+    if (has("magma", "sulfur", "crystal", "stone")) {
+      effectName = "Crystal Inferno";
+      bonus = 6;
+    } else if (has("boulder", "frost", "crystal", "stone")) {
+      effectName = "Diamond Avalanche";
+      bonus = 6;
+    } else if (has("lightning", "storm", "crystal", "ice")) {
+      effectName = "Prismatic Lightning";
+      bonus = 6;
+    }
+    // 3 Material Combinations
+    else if (has("magma", "sulfur", "crystal")) {
+      effectName = "Volcanic Crystal";
+      bonus = 5;
+    } else if (has("magma", "sulfur", "stone")) {
+      effectName = "Magma Bomb";
+      bonus = 4;
+    } else if (has("flame", "ember", "stone")) {
+      effectName = "Scorching Boulder";
+      bonus = 4;
+    } else if (has("boulder", "frost", "crystal")) {
+      effectName = "Crystal Glacier";
+      bonus = 5;
+    } else if (has("boulder", "frost", "stone")) {
+      effectName = "Glacial Hammer";
+      bonus = 4;
+    } else if (has("boulder", "frost", "ice")) {
+      effectName = "Frozen Avalanche";
+      bonus = 4;
+    } else if (has("frost", "ice", "crystal")) {
+      effectName = "Diamond Shard";
+      bonus = 5;
+    } else if (has("lightning", "storm", "crystal")) {
+      effectName = "Prismatic Storm";
+      bonus = 5;
+    } else if (has("magma", "frost")) {
+      effectName = "Steam Eruption";
+      bonus = 4;
+    } else if (has("boulder", "ember")) {
+      effectName = "Molten Rock";
+      bonus = 4;
+    } else if (has("lightning", "frost")) {
+      effectName = "Frozen Lightning";
+      bonus = 4;
+    }
+    // 2 Material Combinations
+    else if (has("magma", "sulfur")) {
+      effectName = "Sulfuric Blast";
+      bonus = 3;
+    } else if (has("magma", "flame")) {
+      effectName = "Volcanic Eruption";
+      bonus = 3;
+    } else if (has("flame", "ember")) {
+      effectName = "Inferno Blast";
+      bonus = 3;
+    } else if (has("frost", "ice")) {
+      effectName = "Glacial Lance";
+      bonus = 3;
+    } else if (has("boulder", "frost")) {
+      effectName = "Frozen Boulder";
+      bonus = 3;
+    } else if (has("boulder", "stone")) {
+      effectName = "Boulder Crash";
+      bonus = 3;
+    } else if (has("boulder", "crystal")) {
+      effectName = "Crystal Boulder";
+      bonus = 3;
+    } else if (has("stone", "crystal")) {
+      effectName = "Crystalline Strike";
+      bonus = 3;
+    } else if (has("lightning", "storm")) {
+      effectName = "Thunderstorm";
+      bonus = 3;
+    } else if (has("storm", "frost")) {
+      effectName = "Frozen Storm";
+      bonus = 3;
+    }
+    // Single high-value materials (medium specificity)
+    else if (has("magma")) {
+      effectName = "Magma Blast";
+      bonus = 2;
+    } else if (has("lightning")) {
+      effectName = "Lightning Strike";
+      bonus = 2;
+    } else if (has("boulder")) {
+      effectName = "Boulder Throw";
+      bonus = 2;
+    } else if (has("storm")) {
+      effectName = "Storm Surge";
+      bonus = 2;
+    }
+    // Fallback to element-based naming (lowest specificity)
+    else if (hasFire && hasWater && hasAir) {
+      effectName = "Tempest Storm";
+      bonus = 5;
+    } else if (hasFire && hasEarth && hasWater) {
+      effectName = "Lava Burst";
+      bonus = 5;
+    } else if (hasWater && hasAir) {
+      effectName = "Blizzard";
+      bonus = 3;
+    } else if (hasFire && hasWater) {
+      effectName = "Steam Blast";
+      bonus = 3;
+    } else if (hasEarth && hasWater) {
+      effectName = "Mud Torrent";
+      bonus = 2;
+    } else if (hasFire && hasEarth) {
+      effectName = "Fireball";
+    } else if (hasWater) {
+      effectName = "Frost Bolt";
+    } else if (hasFire) {
+      effectName = "Fire Blast";
+    } else if (hasEarth) {
+      effectName = "Stone Strike";
+    } else if (hasAir) {
+      effectName = "Wind Blast";
+    }
   }
 
-  // Shield spell names
+  // Shield spell names (material-specific)
   if (hasShield) {
-    if (hasWater && hasFire) {
+    if (has("ice", "crystal")) {
+      effectName = effectName === "Unknown Spell" ? "Crystal Barrier" : `${effectName} + Crystal Barrier`;
+      bonus += 2;
+    } else if (has("ice")) {
+      effectName = effectName === "Unknown Spell" ? "Ice Barrier" : `${effectName} + Ice Barrier`;
+    } else if (has("ember", "stone")) {
+      effectName = effectName === "Unknown Spell" ? "Molten Wall" : `${effectName} + Molten Wall`;
+      bonus += 2;
+    } else if (has("ember")) {
+      effectName = effectName === "Unknown Spell" ? "Flame Guard" : `${effectName} + Flame Guard`;
+    } else if (has("sand", "crystal")) {
+      effectName = effectName === "Unknown Spell" ? "Crystal Shield" : `${effectName} + Crystal Shield`;
+      bonus += 2;
+    } else if (has("sand")) {
+      effectName = effectName === "Unknown Spell" ? "Sand Wall" : `${effectName} + Sand Wall`;
+    } else if (hasWater && hasFire) {
       effectName = effectName === "Unknown Spell" ? "Steam Shield" : `${effectName} + Steam Shield`;
     } else if (hasWater) {
       effectName = effectName === "Unknown Spell" ? "Ice Barrier" : `${effectName} + Ice Barrier`;
@@ -309,9 +466,12 @@ function determineEffectNameBackend(
     }
   }
 
-  // Healing spell names
+  // Healing spell names (material-specific)
   if (hasHealing) {
-    if (hasWater) {
+    if (has("mist", "crystal")) {
+      effectName = effectName === "Unknown Spell" ? "Crystal Renewal" : `${effectName} + Crystal Renewal`;
+      bonus += 2;
+    } else if (hasWater) {
       effectName = effectName === "Unknown Spell" ? "Healing Waters" : `${effectName} + Healing Waters`;
     } else if (hasEarth) {
       effectName = effectName === "Unknown Spell" ? "Life Essence" : `${effectName} + Life Essence`;
