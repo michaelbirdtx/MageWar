@@ -1,10 +1,20 @@
 import { useState } from "react";
-import { SpellComponent, Specialization, MAX_SPELLS_PER_ROUND } from "@shared/schema";
+import {
+  SpellComponent,
+  Specialization,
+  MAX_SPELLS_PER_ROUND,
+} from "@shared/schema";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Trash2, Sparkles, X } from "lucide-react";
 import ElementIcon from "./ElementIcon";
-import { ELEMENT_COLORS, ELEMENT_BG_COLORS, ELEMENT_BORDER_COLORS, calculateSpellPower, applySpecializationBonus } from "@/lib/gameData";
+import {
+  ELEMENT_COLORS,
+  ELEMENT_BG_COLORS,
+  ELEMENT_BORDER_COLORS,
+  calculateSpellPower,
+  applySpecializationBonus,
+} from "@/lib/gameData";
 
 interface SpellBuilderProps {
   components: SpellComponent[];
@@ -25,7 +35,7 @@ export default function SpellBuilder({
 }: SpellBuilderProps) {
   const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
   const [dragOverChild, setDragOverChild] = useState<string | null>(null);
-  
+
   const spellStats = calculateSpellPower(components);
   const baseDamage = spellStats.damage;
   const baseManaCost = spellStats.manaCost;
@@ -33,37 +43,40 @@ export default function SpellBuilder({
   const healingPower = spellStats.healingPower;
   const bonus = spellStats.bonus;
   const perSpellBreakdown = spellStats.perSpellBreakdown;
-  
+
   // Apply specialization bonus
-  const { damage, manaCost, damageBonus, costReduction } = applySpecializationBonus(
-    components,
-    baseDamage,
-    baseManaCost,
-    playerSpecialization
-  );
-  
+  const { damage, manaCost, damageBonus, costReduction } =
+    applySpecializationBonus(
+      components,
+      baseDamage,
+      baseManaCost,
+      playerSpecialization,
+    );
+
   const { effect, target, validationError } = spellStats;
-  const canCast = components.length > 0 && manaCost <= playerMana && !validationError;
-  
+  const canCast =
+    components.length > 0 && manaCost <= playerMana && !validationError;
+
   const hasMultipleSpells = perSpellBreakdown.length > 1;
-  
-  const specializationName = playerSpecialization === "pyromancer" ? "Pyromancer" : "Aquamancer";
-  
+
+  const specializationName =
+    playerSpecialization === "pyromancer" ? "Pyromancer" : "Aquamancer";
+
   const handleDrop = (e: React.DragEvent, parentId?: string) => {
     e.preventDefault();
     e.stopPropagation();
-    
+
     const componentData = e.dataTransfer.getData("application/json");
     if (!componentData) return;
-    
+
     const newComponent: SpellComponent = JSON.parse(componentData);
     const originalId = newComponent.id;
     newComponent.id = `${originalId}-${Date.now()}`;
     newComponent.baseId = originalId; // Preserve original ID for pattern matching
-    
+
     if (parentId) {
       // Dropping inside a container
-      const updatedComponents = components.map(comp => {
+      const updatedComponents = components.map((comp) => {
         if (comp.id === parentId && comp.type === "container") {
           // Limit containers to 4 children max
           if ((comp.children || []).length >= 4) {
@@ -83,61 +96,72 @@ export default function SpellBuilder({
         // Silently ignore non-container drops at top level
         return;
       }
-      
+
       // Check if we've reached max spells per round
-      const containerCount = components.filter(c => c.type === "container").length;
+      const containerCount = components.filter(
+        (c) => c.type === "container",
+      ).length;
       if (containerCount >= MAX_SPELLS_PER_ROUND) {
         // Silently ignore - max containers reached
         return;
       }
-      
+
       onComponentsChange([...components, newComponent]);
     }
-    
+
     setDragOverIndex(null);
     setDragOverChild(null);
   };
-  
-  const handleDragOver = (e: React.DragEvent, index?: number, parentId?: string) => {
+
+  const handleDragOver = (
+    e: React.DragEvent,
+    index?: number,
+    parentId?: string,
+  ) => {
     e.preventDefault();
     e.stopPropagation();
     if (index !== undefined) setDragOverIndex(index);
     if (parentId) setDragOverChild(parentId);
   };
-  
+
   const handleDragLeave = (e: React.DragEvent) => {
     e.preventDefault();
     const rect = e.currentTarget.getBoundingClientRect();
     const x = e.clientX;
     const y = e.clientY;
-    
+
     if (x < rect.left || x >= rect.right || y < rect.top || y >= rect.bottom) {
       setDragOverIndex(null);
       setDragOverChild(null);
     }
   };
-  
+
   const removeComponent = (componentId: string, parentId?: string) => {
     if (parentId) {
-      const updatedComponents = components.map(comp => {
+      const updatedComponents = components.map((comp) => {
         if (comp.id === parentId) {
           return {
             ...comp,
-            children: comp.children?.filter(c => c.id !== componentId),
+            children: comp.children?.filter((c) => c.id !== componentId),
           };
         }
         return comp;
       });
       onComponentsChange(updatedComponents);
     } else {
-      onComponentsChange(components.filter(c => c.id !== componentId));
+      onComponentsChange(components.filter((c) => c.id !== componentId));
     }
   };
-  
+
   return (
     <div className="flex flex-col gap-4 h-full">
       <div className="flex items-center justify-between">
-        <h2 className="font-serif font-semibold text-xl" data-testid="text-builder-title">Spell Builder</h2>
+        <h2
+          className="font-serif font-semibold text-xl"
+          data-testid="text-builder-title"
+        >
+          Spell Builder
+        </h2>
         {components.length > 0 && (
           <Button
             variant="ghost"
@@ -150,11 +174,11 @@ export default function SpellBuilder({
           </Button>
         )}
       </div>
-      
+
       <Card
         className={`flex-1 min-h-80 overflow-y-auto p-6 border-2 transition-all ${
-          components.length === 0 
-            ? "border-dashed border-muted-foreground/30" 
+          components.length === 0
+            ? "border-dashed border-muted-foreground/30"
             : "border-primary/50"
         } ${dragOverIndex === null && dragOverChild === null ? "" : "border-primary"}`}
         onDrop={(e) => handleDrop(e)}
@@ -165,7 +189,9 @@ export default function SpellBuilder({
         {components.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-full text-muted-foreground">
             <Sparkles className="w-12 h-12 mb-4 opacity-50" />
-            <p className="text-center">Drag components here to build your spell</p>
+            <p className="text-center">
+              Drag components here to build your spell
+            </p>
           </div>
         ) : (
           <div className="flex flex-col gap-3">
@@ -183,21 +209,26 @@ export default function SpellBuilder({
           </div>
         )}
       </Card>
-      
+
       {components.length > 0 && (
         <Card className="p-4 bg-muted/30">
           {validationError && (
             <div className="mb-3 p-2 bg-destructive/10 border border-destructive/20 rounded-md">
-              <p className="text-xs text-destructive font-medium">{validationError}</p>
-            </div>
-          )}
-          {target === "self" && !validationError && damage > 0 && !hasMultipleSpells && (
-            <div className="mb-3 p-2 bg-yellow-500/10 border border-yellow-500/20 rounded-md">
-              <p className="text-xs text-yellow-700 dark:text-yellow-400 font-medium">
-                Warning: This spell will damage YOU for {damage} HP
+              <p className="text-xs text-destructive font-medium">
+                {validationError}
               </p>
             </div>
           )}
+          {target === "self" &&
+            !validationError &&
+            damage > 0 &&
+            !hasMultipleSpells && (
+              <div className="mb-3 p-2 bg-yellow-500/10 border border-yellow-500/20 rounded-md">
+                <p className="text-xs text-yellow-700 dark:text-yellow-400 font-medium">
+                  Warning: This spell will damage YOU for {damage} HP
+                </p>
+              </div>
+            )}
           <div className="flex flex-col gap-3">
             {bonus > 0 && (
               <div className="p-2 bg-purple-500/10 border border-purple-500/20 rounded-md">
@@ -209,41 +240,69 @@ export default function SpellBuilder({
                 </p>
               </div>
             )}
-            {bonus === 0 && effect !== "Unknown Spell" && !hasMultipleSpells && (
-              <div className="text-center">
-                <p className="text-sm font-semibold text-primary" data-testid="text-spell-effect">{effect}</p>
-              </div>
-            )}
-            
+            {bonus === 0 &&
+              effect !== "Unknown Spell" &&
+              !hasMultipleSpells && (
+                <div className="text-center">
+                  <p
+                    className="text-sm font-semibold text-primary"
+                    data-testid="text-spell-effect"
+                  >
+                    {effect}
+                  </p>
+                </div>
+              )}
+
             {/* Multi-spell breakdown view */}
             {hasMultipleSpells && (
               <div className="flex flex-col gap-3">
-                <p className="text-xs font-semibold text-muted-foreground text-center">Spell Breakdown</p>
+                <p className="text-xs font-semibold text-muted-foreground text-center">
+                  Spell Breakdown
+                </p>
                 {perSpellBreakdown.map((spell, index) => (
-                  <div key={index} className="p-3 bg-card border border-border rounded-md">
+                  <div
+                    key={index}
+                    className="p-3 bg-card border border-border rounded-md"
+                  >
                     <div className="flex items-center justify-between mb-2">
-                      <p className="text-sm font-semibold text-primary">Spell {index + 1}: {spell.containerName}</p>
-                      <p className={`text-xs font-semibold ${spell.target === "self" ? "text-yellow-600 dark:text-yellow-400" : "text-cyan-600 dark:text-cyan-400"}`}>
+                      <p className="text-sm font-semibold text-primary">
+                        Spell {index + 1}: {spell.containerName}
+                      </p>
+                      <p
+                        className={`text-xs font-semibold ${spell.target === "self" ? "text-yellow-600 dark:text-yellow-400" : "text-cyan-600 dark:text-cyan-400"}`}
+                      >
                         → {spell.target === "self" ? "Self" : "Opponent"}
                       </p>
                     </div>
                     <div className="grid grid-cols-3 gap-2">
                       {spell.damage > 0 && (
                         <div>
-                          <p className="text-xs text-muted-foreground">Damage</p>
-                          <p className="text-sm font-semibold text-destructive">{spell.damage}</p>
+                          <p className="text-xs text-muted-foreground">
+                            Damage
+                          </p>
+                          <p className="text-sm font-semibold text-destructive">
+                            {spell.damage}
+                          </p>
                         </div>
                       )}
                       {spell.shieldPower > 0 && (
                         <div>
-                          <p className="text-xs text-muted-foreground">Shield</p>
-                          <p className="text-sm font-semibold text-blue-600 dark:text-blue-400">{spell.shieldPower}</p>
+                          <p className="text-xs text-muted-foreground">
+                            Shield
+                          </p>
+                          <p className="text-sm font-semibold text-blue-600 dark:text-blue-400">
+                            {spell.shieldPower}
+                          </p>
                         </div>
                       )}
                       {spell.healingPower > 0 && (
                         <div>
-                          <p className="text-xs text-muted-foreground">Healing</p>
-                          <p className="text-sm font-semibold text-green-600 dark:text-green-400">{spell.healingPower}</p>
+                          <p className="text-xs text-muted-foreground">
+                            Healing
+                          </p>
+                          <p className="text-sm font-semibold text-green-600 dark:text-green-400">
+                            {spell.healingPower}
+                          </p>
                         </div>
                       )}
                     </div>
@@ -251,14 +310,17 @@ export default function SpellBuilder({
                 ))}
               </div>
             )}
-            
+
             {/* Single spell simple view */}
             {!hasMultipleSpells && (
               <div className="grid grid-cols-2 gap-3">
                 {damage > 0 && (
                   <div>
                     <p className="text-xs text-muted-foreground">Damage</p>
-                    <p className="font-semibold text-sm text-destructive" data-testid="text-spell-damage">
+                    <p
+                      className="font-semibold text-sm text-destructive"
+                      data-testid="text-spell-damage"
+                    >
                       {damage}
                       {damageBonus > 0 && (
                         <span className="text-xs ml-1 text-green-600 dark:text-green-400">
@@ -276,7 +338,10 @@ export default function SpellBuilder({
                 {shieldPower > 0 && (
                   <div>
                     <p className="text-xs text-muted-foreground">Shield</p>
-                    <p className="font-semibold text-sm text-blue-600 dark:text-blue-400" data-testid="text-spell-shield">
+                    <p
+                      className="font-semibold text-sm text-blue-600 dark:text-blue-400"
+                      data-testid="text-spell-shield"
+                    >
                       {shieldPower}
                     </p>
                   </div>
@@ -284,20 +349,29 @@ export default function SpellBuilder({
                 {healingPower > 0 && (
                   <div>
                     <p className="text-xs text-muted-foreground">Healing</p>
-                    <p className="font-semibold text-sm text-green-600 dark:text-green-400" data-testid="text-spell-healing">
+                    <p
+                      className="font-semibold text-sm text-green-600 dark:text-green-400"
+                      data-testid="text-spell-healing"
+                    >
                       {healingPower}
                     </p>
                   </div>
                 )}
                 <div>
                   <p className="text-xs text-muted-foreground">Target</p>
-                  <p className={`font-semibold text-sm ${target === "self" ? "text-yellow-600 dark:text-yellow-400" : "text-primary"}`} data-testid="text-spell-target">
+                  <p
+                    className={`font-semibold text-sm ${target === "self" ? "text-yellow-600 dark:text-yellow-400" : "text-primary"}`}
+                    data-testid="text-spell-target"
+                  >
                     {target === "self" ? "Self" : "Opponent"}
                   </p>
                 </div>
                 <div>
                   <p className="text-xs text-muted-foreground">Mana Cost</p>
-                  <p className={`font-semibold text-sm ${manaCost > playerMana ? "text-destructive" : "text-primary"}`} data-testid="text-spell-cost">
+                  <p
+                    className={`font-semibold text-sm ${manaCost > playerMana ? "text-destructive" : "text-primary"}`}
+                    data-testid="text-spell-cost"
+                  >
                     {manaCost}
                     {costReduction > 0 && (
                       <span className="text-xs ml-1 text-green-600 dark:text-green-400">
@@ -308,13 +382,17 @@ export default function SpellBuilder({
                 </div>
               </div>
             )}
-            
+
             {/* Total mana cost for multi-spell */}
             {hasMultipleSpells && (
               <div className="pt-2 border-t border-border">
                 <div className="flex justify-between items-center">
-                  <p className="text-sm font-semibold text-muted-foreground">Total Mana Cost</p>
-                  <p className={`text-lg font-bold ${manaCost > playerMana ? "text-destructive" : "text-primary"}`}>
+                  <p className="text-sm font-semibold text-muted-foreground">
+                    Total Mana Cost
+                  </p>
+                  <p
+                    className={`text-lg font-bold ${manaCost > playerMana ? "text-destructive" : "text-primary"}`}
+                  >
                     {manaCost}
                     {costReduction > 0 && (
                       <span className="text-xs ml-1 text-green-600 dark:text-green-400">
@@ -325,7 +403,7 @@ export default function SpellBuilder({
                 </div>
               </div>
             )}
-            
+
             <Button
               onClick={onCastSpell}
               disabled={!canCast}
@@ -333,7 +411,7 @@ export default function SpellBuilder({
               data-testid="button-cast-spell"
             >
               <Sparkles className="w-4 h-4 mr-2" />
-              Lock In Spell
+              Lock In Casting
             </Button>
           </div>
         </Card>
@@ -360,19 +438,32 @@ function ComponentInBuilder({
   const elementColor = ELEMENT_COLORS[component.element];
   const elementBg = ELEMENT_BG_COLORS[component.element];
   const elementBorder = ELEMENT_BORDER_COLORS[component.element];
-  
+
   return (
     <div className="flex flex-col gap-2">
-      <div className={`flex items-center gap-3 p-3 rounded-lg border-2 ${elementBg} ${elementBorder} relative group`}>
-        <ElementIcon element={component.element} className={`w-5 h-5 ${elementColor}`} />
+      <div
+        className={`flex items-center gap-3 p-3 rounded-lg border-2 ${elementBg} ${elementBorder} relative group`}
+      >
+        <ElementIcon
+          element={component.element}
+          className={`w-5 h-5 ${elementColor}`}
+        />
         <div className="flex-1">
           <div className="flex items-center gap-2">
-            <span className={`font-semibold text-sm ${elementColor}`}>{component.name}</span>
-            <span className="text-xs px-2 py-0.5 bg-card rounded-md border">{component.type}</span>
+            <span className={`font-semibold text-sm ${elementColor}`}>
+              {component.name}
+            </span>
+            <span className="text-xs px-2 py-0.5 bg-card rounded-md border">
+              {component.type}
+            </span>
           </div>
-          <p className="text-xs text-muted-foreground">{component.description}</p>
+          <p className="text-xs text-muted-foreground">
+            {component.description}
+          </p>
         </div>
-        <span className="text-xs font-bold text-primary">{component.manaCost} Mana</span>
+        <span className="text-xs font-bold text-primary">
+          {component.manaCost} Mana
+        </span>
         <Button
           variant="ghost"
           size="icon"
@@ -383,7 +474,7 @@ function ComponentInBuilder({
           <X className="w-4 h-4" />
         </Button>
       </div>
-      
+
       {component.type === "container" && (
         <div
           className={`ml-6 border-l-2 pl-4 ${elementBorder} min-h-16 ${
@@ -396,10 +487,22 @@ function ComponentInBuilder({
           {component.children && component.children.length > 0 ? (
             <div className="flex flex-col gap-2">
               {component.children.map((child) => (
-                <div key={child.id} className={`flex items-center gap-2 p-2 rounded-md border ${elementBg} ${elementBorder} relative group`}>
-                  <ElementIcon element={child.element} className={`w-4 h-4 ${ELEMENT_COLORS[child.element]}`} />
-                  <span className={`text-xs font-medium ${ELEMENT_COLORS[child.element]}`}>{child.name}</span>
-                  <span className="text-xs ml-auto text-muted-foreground">{child.manaCost} Mana</span>
+                <div
+                  key={child.id}
+                  className={`flex items-center gap-2 p-2 rounded-md border ${elementBg} ${elementBorder} relative group`}
+                >
+                  <ElementIcon
+                    element={child.element}
+                    className={`w-4 h-4 ${ELEMENT_COLORS[child.element]}`}
+                  />
+                  <span
+                    className={`text-xs font-medium ${ELEMENT_COLORS[child.element]}`}
+                  >
+                    {child.name}
+                  </span>
+                  <span className="text-xs ml-auto text-muted-foreground">
+                    {child.manaCost} Mana
+                  </span>
                   <Button
                     variant="ghost"
                     size="icon"
