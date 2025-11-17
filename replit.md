@@ -261,4 +261,9 @@ Preferred communication style: Simple, everyday language.
   - Added `effectType: 'damage' | 'shield' | 'healing'` to SpellComponent
   - Added `shieldPower`, `healingPower`, `bonus` fields to SpellComponent and Spell interfaces
   - Maintains backward compatibility with existing damage-only spells
+- **Bug Fix** (November 17, 2025):
+  - Fixed shield and healing preview calculations in calculateSpellPower (client/src/lib/gameData.ts)
+  - Issue: Child component lookups used regular `id` instead of `baseId`, causing shield/healing values to always show as 0 in spell preview
+  - Solution: Updated lines 318 and 325 to match children using `(c.baseId || c.id)` instead of just `c.id`
+  - Result: Spell preview now correctly displays shield power (blue) and healing power (green) before casting
 - Date implemented: November 17, 2025
