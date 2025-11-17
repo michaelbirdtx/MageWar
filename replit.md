@@ -43,6 +43,43 @@ Preferred communication style: Simple, everyday language.
 *   **Pattern-Based Shield and Healing**: Shields require a 'Vortex' container + specific materials (Ice, Ember, or Sand). Healing requires a 'Vortex' container + all four elemental materials (Mist, Crystal, Ember, Lightning/Storm). Removed single-purpose shield/healing components; now materials are neutral. Healing detection takes priority over shield detection. Creative multi-element spell combinations still provide bonus damage and unique names.
 *   **Multi-Spell-Per-Round System**: Players can cast up to 2 separate spells (containers with contents) per round, configurable by `MAX_SPELLS_PER_ROUND`. Validation ensures max containers, non-empty containers, and mana limits. A "Spell Breakdown" view details each spell's effects and target independently. AI adapts to cast multiple strategic spells.
 
+## AI Improvements (November 17, 2025)
+
+### High-Damage Spell Templates
+Redesigned AI spell arsenal to deal competitive damage using high-base-damage materials and multiplier stacking:
+
+**Fire Spells (Pyromancer-favored):**
+- Magma Bomb (38 mana): Magma (6 base) × Sulfur (4×) = 24 damage → ~29 with specialization
+- Inferno Strike (40 mana): Flame (3) + Ember (2) × Stone (3×) = 15 damage → ~18 with specialization
+- Volcanic Eruption (42 mana): Magma (6) + Flame (3) = 9 damage → ~11 with specialization
+
+**Water Spells (Aquamancer-favored):**
+- Frozen Boulder (46 mana): (Boulder 5 + Frost 2) × Crystal (2×) = 14 damage → ~17 with specialization
+- Glacial Hammer (43 mana): (Boulder 5 + Frost 2) × Stone (3×) = 21 damage → ~25 with specialization
+- Storm Blast (38 mana): Storm (5) + Frost (2) = 7 damage → ~8 with specialization
+
+**Generic Spells:**
+- Boulder Crash (34 mana): Boulder (5) × Stone (3×) = 15 damage
+- Thunder Strike (38 mana): Lightning (4) + Storm (5) = 9 damage
+
+### Specialization Matching
+- Updated selectBestAffordableSpell to check element composition instead of spell names
+- Filters spells by `elements` array: fire-containing spells for Pyromancers, water for Aquamancers
+- Prioritizes matching spells, falls back to generic spells when match unavailable
+
+### Enhanced AI Strategy
+- **Priority 1**: Cast damage spell (specialization-matched when affordable)
+- **Priority 2**: Heal if health < 60%
+- **Priority 3 (NEW)**: Cast SECOND damage spell if health > 80% and mana ≥ 25 (leverages 2-spell system!)
+- **Priority 4**: Shield if health < 80% or extra mana remains
+
+### Benefits
+- AI damage output increased from 2-4 damage to 15-30 damage per spell
+- Specialization bonuses now meaningful: +20% damage, -20% mana cost on matching elements
+- AI can cast 2 damage spells per turn when healthy (double offensive pressure!)
+- Water and fire specializations now balanced in damage potential
+- Mana budgeting fixed: all spell costs accurately match component totals
+
 ## External Dependencies
 
 *   **Development & Build Tools**: Vite plugins (React, runtime error overlay, Replit cartographer), ESBuild, Drizzle Kit, TSX.

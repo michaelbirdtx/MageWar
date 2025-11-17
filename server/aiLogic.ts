@@ -31,39 +31,89 @@ const availableComponents: SpellComponent[] = [
 
 // Individual container templates for building multi-spell combinations
 const damageSpells = [
+  // Fire-based spells (favored by Pyromancers)
   {
-    name: "Fireball",
-    manaCost: 31, // Air Sphere 10 + Sulfur 8 + Spark 5 + Gust 8
+    name: "Magma Bomb",
+    manaCost: 38, // Air Sphere 10 + Magma 12 + Sulfur 8 + Gust 8 = 38
+    elements: ["air", "fire", "earth"],
     components: [{ ...availableComponents.find(c => c.id === "air-sphere")!, children: [
-      { ...availableComponents.find(c => c.id === "sulfur")! },
-      { ...availableComponents.find(c => c.id === "spark")! },
+      { ...availableComponents.find(c => c.id === "magma")! },  // 6 base damage
+      { ...availableComponents.find(c => c.id === "sulfur")! }, // 4x multiplier
       { ...availableComponents.find(c => c.id === "gust")! },
     ]}],
   },
   {
-    name: "Frost Bolt",
-    manaCost: 32, // Air Sphere 10 + Frost 9 + Mist 5 + Gust 8
+    name: "Inferno Strike",
+    manaCost: 40, // Air Sphere 10 + Flame 10 + Ember 6 + Stone 6 + Gust 8 = 40
+    elements: ["air", "fire", "earth"],
     components: [{ ...availableComponents.find(c => c.id === "air-sphere")!, children: [
-      { ...availableComponents.find(c => c.id === "frost")! },
-      { ...availableComponents.find(c => c.id === "mist")! },
+      { ...availableComponents.find(c => c.id === "flame")! },  // 3 base damage
+      { ...availableComponents.find(c => c.id === "ember")! },  // 2 base damage
+      { ...availableComponents.find(c => c.id === "stone")! },  // 3x multiplier
       { ...availableComponents.find(c => c.id === "gust")! },
     ]}],
   },
   {
-    name: "Stone Strike",
-    manaCost: 28, // Air Sphere 10 + Stone 6 + Sand 4 + Gust 8
-    components: [{ ...availableComponents.find(c => c.id === "air-sphere")!, children: [
-      { ...availableComponents.find(c => c.id === "stone")! },
-      { ...availableComponents.find(c => c.id === "sand")! },
-      { ...availableComponents.find(c => c.id === "gust")! },
-    ]}],
-  },
-  {
-    name: "Volcanic Blast",
-    manaCost: 38, // Vortex 12 + Sulfur 8 + Flame 10 + Gust 8
+    name: "Volcanic Eruption",
+    manaCost: 42, // Vortex 12 + Magma 12 + Flame 10 + Gust 8 = 42
+    elements: ["air", "fire"],
     components: [{ ...availableComponents.find(c => c.id === "vortex")!, children: [
-      { ...availableComponents.find(c => c.id === "sulfur")! },
-      { ...availableComponents.find(c => c.id === "flame")! },
+      { ...availableComponents.find(c => c.id === "magma")! },  // 6 base damage
+      { ...availableComponents.find(c => c.id === "flame")! },  // 3 base damage
+      { ...availableComponents.find(c => c.id === "gust")! },
+    ]}],
+  },
+  // Water-based spells (favored by Aquamancers) - now with multipliers for high damage
+  {
+    name: "Frozen Boulder",
+    manaCost: 46, // Vortex 12 + Boulder 10 + Frost 9 + Crystal 7 + Gust 8 = 46
+    elements: ["air", "water", "earth"],
+    components: [{ ...availableComponents.find(c => c.id === "vortex")!, children: [
+      { ...availableComponents.find(c => c.id === "boulder")! }, // 5 base damage
+      { ...availableComponents.find(c => c.id === "frost")! },   // 2 base damage
+      { ...availableComponents.find(c => c.id === "crystal")! }, // 2x multiplier = 14 damage total
+      { ...availableComponents.find(c => c.id === "gust")! },
+    ]}],
+  },
+  {
+    name: "Glacial Hammer",
+    manaCost: 43, // Air Sphere 10 + Boulder 10 + Frost 9 + Stone 6 + Gust 8 = 43
+    elements: ["air", "water", "earth"],
+    components: [{ ...availableComponents.find(c => c.id === "air-sphere")!, children: [
+      { ...availableComponents.find(c => c.id === "boulder")! }, // 5 base damage
+      { ...availableComponents.find(c => c.id === "frost")! },   // 2 base damage
+      { ...availableComponents.find(c => c.id === "stone")! },   // 3x multiplier = 21 damage total
+      { ...availableComponents.find(c => c.id === "gust")! },
+    ]}],
+  },
+  {
+    name: "Storm Blast",
+    manaCost: 38, // Air Sphere 10 + Storm 11 + Frost 9 + Gust 8 = 38
+    elements: ["air", "water"],
+    components: [{ ...availableComponents.find(c => c.id === "air-sphere")!, children: [
+      { ...availableComponents.find(c => c.id === "storm")! },   // 5 base damage
+      { ...availableComponents.find(c => c.id === "frost")! },   // 2 base damage = 7 total
+      { ...availableComponents.find(c => c.id === "gust")! },
+    ]}],
+  },
+  // Generic high-damage spells
+  {
+    name: "Boulder Crash",
+    manaCost: 34, // Air Sphere 10 + Boulder 10 + Stone 6 + Gust 8 = 34
+    elements: ["air", "earth"],
+    components: [{ ...availableComponents.find(c => c.id === "air-sphere")!, children: [
+      { ...availableComponents.find(c => c.id === "boulder")! }, // 5 base damage
+      { ...availableComponents.find(c => c.id === "stone")! },   // 3x multiplier
+      { ...availableComponents.find(c => c.id === "gust")! },
+    ]}],
+  },
+  {
+    name: "Thunder Strike",
+    manaCost: 38, // Air Sphere 10 + Lightning 9 + Storm 11 + Gust 8 = 38
+    elements: ["air"],
+    components: [{ ...availableComponents.find(c => c.id === "air-sphere")!, children: [
+      { ...availableComponents.find(c => c.id === "lightning")! }, // 4 base damage
+      { ...availableComponents.find(c => c.id === "storm")! },     // 5 base damage
       { ...availableComponents.find(c => c.id === "gust")! },
     ]}],
   },
@@ -146,7 +196,7 @@ export function generateAISpell(
     remainingMana -= damageSpell.manaCost;
   }
 
-  // Priority 2: Add healing if low health (and haven't reached max spells)
+  // Priority 2: Add healing if critically low health (and haven't reached max spells)
   if (needsHealing && remainingMana >= 20 && containers.length < MAX_SPELLS_PER_ROUND) {
     const healSpell = selectBestAffordableSpell(healingSpells, remainingMana, specialization);
     if (healSpell) {
@@ -155,7 +205,16 @@ export function generateAISpell(
     }
   }
 
-  // Priority 3: Add shield if in danger or have extra mana (and haven't reached max spells)
+  // Priority 3: Add second damage spell if health is good and mana allows (max damage!)
+  if (!needsHealing && !needsDefense && remainingMana >= 25 && containers.length < MAX_SPELLS_PER_ROUND) {
+    const secondDamage = selectBestAffordableSpell(damageSpells, remainingMana, specialization);
+    if (secondDamage) {
+      containers.push(...deepCloneComponents(secondDamage.components));
+      remainingMana -= secondDamage.manaCost;
+    }
+  }
+
+  // Priority 4: Add shield if in danger or have extra mana (and haven't reached max spells)
   if ((needsDefense || remainingMana >= 25) && remainingMana >= 20 && containers.length < MAX_SPELLS_PER_ROUND) {
     const shieldSpell = selectBestAffordableSpell(shieldSpells, remainingMana, specialization);
     if (shieldSpell) {
@@ -185,20 +244,22 @@ export function generateAISpell(
 }
 
 function selectBestAffordableSpell(
-  spellList: Array<{ name: string; manaCost: number; components: SpellComponent[] }>,
+  spellList: Array<{ name: string; manaCost: number; components: SpellComponent[]; elements?: string[] }>,
   maxMana: number,
   specialization?: "pyromancer" | "aquamancer"
-): { name: string; manaCost: number; components: SpellComponent[] } | null {
+): { name: string; manaCost: number; components: SpellComponent[]; elements?: string[] } | null {
   // Filter affordable spells
   const affordable = spellList.filter(s => s.manaCost <= maxMana);
   if (affordable.length === 0) return null;
 
-  // Prioritize spells matching specialization
+  // Prioritize spells matching specialization by element composition
   const matching = affordable.filter(s => {
+    if (!s.elements) return false;
+    
     if (specialization === "pyromancer") {
-      return s.name.toLowerCase().includes("fire") || s.name.toLowerCase().includes("flame") || s.name.toLowerCase().includes("volcanic");
+      return s.elements.includes("fire");
     } else if (specialization === "aquamancer") {
-      return s.name.toLowerCase().includes("frost") || s.name.toLowerCase().includes("ice") || s.name.toLowerCase().includes("water");
+      return s.elements.includes("water");
     }
     return false;
   });
