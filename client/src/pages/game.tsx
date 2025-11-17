@@ -169,6 +169,8 @@ export default function GamePage() {
     setShowVictoryDialog(false);
     setShowDefeatDialog(false);
     setShowTieDialog(false);
+    setShowResultsModal(false);
+    setRoundResults(null);
     setGameState(null);
     setSessionId(null);
     setShowCharacterCreator(true);
