@@ -60,7 +60,7 @@ export default function ResultsModal({
                       </p>
                     </div>
                   )}
-                  {playerResult.shieldPower && playerResult.shieldPower > 0 && (
+                  {(playerResult.shieldPower || 0) > 0 && (
                     <div>
                       <p className="text-xs text-muted-foreground">Shield</p>
                       <p className="text-2xl font-bold text-blue-600 dark:text-blue-400" data-testid="text-player-shield">
@@ -68,7 +68,7 @@ export default function ResultsModal({
                       </p>
                     </div>
                   )}
-                  {playerResult.healingPower && playerResult.healingPower > 0 && (
+                  {(playerResult.healingPower || 0) > 0 && (
                     <div>
                       <p className="text-xs text-muted-foreground">Healing</p>
                       <p className="text-2xl font-bold text-green-600 dark:text-green-400" data-testid="text-player-healing">
@@ -110,7 +110,7 @@ export default function ResultsModal({
                       </p>
                     </div>
                   )}
-                  {aiResult.shieldPower && aiResult.shieldPower > 0 && (
+                  {(aiResult.shieldPower || 0) > 0 && (
                     <div>
                       <p className="text-xs text-muted-foreground">Shield</p>
                       <p className="text-2xl font-bold text-blue-600 dark:text-blue-400" data-testid="text-ai-shield">
@@ -118,7 +118,7 @@ export default function ResultsModal({
                       </p>
                     </div>
                   )}
-                  {aiResult.healingPower && aiResult.healingPower > 0 && (
+                  {(aiResult.healingPower || 0) > 0 && (
                     <div>
                       <p className="text-xs text-muted-foreground">Healing</p>
                       <p className="text-2xl font-bold text-green-600 dark:text-green-400" data-testid="text-ai-healing">
