@@ -7,6 +7,7 @@ import {
   validateSpell, 
   applyCombatDamage,
   applySimultaneousDamage,
+  applyCombatResolution,
   consumeMana,
   regenerateMana,
   switchTurn,
@@ -141,12 +142,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
         components,
         totalManaCost: playerStats.manaCost,
         damage: playerStats.damage,
+        shieldPower: playerStats.shieldPower,
+        healingPower: playerStats.healingPower,
         effect: playerStats.effect,
+        bonus: playerStats.bonus,
       };
       
       // Generate AI spell immediately
       const difficulty = getAIDifficulty(gameState.opponent.health, gameState.player.health);
-      const aiComponents = generateAISpell(gameState.opponent.mana, difficulty, gameState.opponent.specialization);
+      const aiComponents = generateAISpell(
+        gameState.opponent.mana, 
+        difficulty, 
+        gameState.opponent.specialization,
+        gameState.opponent.health,
+        gameState.player.health
+      );
       
       let aiStats;
       if (aiComponents.length > 0) {
@@ -161,7 +171,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
           components: aiComponents,
           totalManaCost: aiStats.manaCost,
           damage: aiStats.damage,
+          shieldPower: aiStats.shieldPower,
+          healingPower: aiStats.healingPower,
           effect: aiStats.effect,
+          bonus: aiStats.bonus,
         };
       }
       
@@ -171,28 +184,41 @@ export async function registerRoutes(app: Express): Promise<Server> {
         gameState.opponent = consumeMana(gameState.opponent, aiStats.manaCost);
       }
       
-      // Accumulate damage to be applied simultaneously
-      let damageToPlayer = 0;
-      let damageToOpponent = 0;
-      
-      // Add player spell damage
-      if (playerStats.target === "opponent") {
-        damageToOpponent += playerStats.damage;
-      } else {
-        damageToPlayer += playerStats.damage;
-      }
-      
-      // Add AI spell damage
+      // Apply combat resolution with shields, damage, and healing
       if (aiComponents.length > 0 && aiStats) {
-        if (aiStats.target === "opponent") {
-          damageToPlayer += aiStats.damage;
-        } else {
-          damageToOpponent += aiStats.damage;
-        }
+        gameState = applyCombatResolution(
+          gameState,
+          {
+            damage: playerStats.target === "opponent" ? playerStats.damage : 0,
+            shieldPower: playerStats.shieldPower,
+            healingPower: playerStats.healingPower,
+            bonus: playerStats.bonus,
+          },
+          {
+            damage: aiStats.target === "opponent" ? aiStats.damage : 0,
+            shieldPower: aiStats.shieldPower,
+            healingPower: aiStats.healingPower,
+            bonus: aiStats.bonus,
+          }
+        );
+      } else {
+        // Player only (no AI spell)
+        gameState = applyCombatResolution(
+          gameState,
+          {
+            damage: playerStats.target === "opponent" ? playerStats.damage : 0,
+            shieldPower: playerStats.shieldPower,
+            healingPower: playerStats.healingPower,
+            bonus: playerStats.bonus,
+          },
+          {
+            damage: 0,
+            shieldPower: 0,
+            healingPower: 0,
+            bonus: 0,
+          }
+        );
       }
-      
-      // Apply both damages simultaneously in a single operation
-      gameState = applySimultaneousDamage(gameState, damageToPlayer, damageToOpponent);
       
       // Check for victory/defeat/tie after all damage is applied
       gameState = checkGameEnd(gameState);
@@ -219,13 +245,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
         gameState,
         playerSpellResult: { 
           effect: playerStats.effect, 
-          damage: playerStats.damage, 
+          damage: playerStats.damage,
+          shieldPower: playerStats.shieldPower,
+          healingPower: playerStats.healingPower,
+          bonus: playerStats.bonus,
           manaCost: playerStats.manaCost, 
           target: playerStats.target,
         },
         aiSpellResult: aiComponents.length > 0 && aiStats ? {
           effect: aiStats.effect,
           damage: aiStats.damage,
+          shieldPower: aiStats.shieldPower,
+          healingPower: aiStats.healingPower,
+          bonus: aiStats.bonus,
           manaCost: aiStats.manaCost,
           target: aiStats.target,
           components: aiComponents,

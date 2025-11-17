@@ -92,97 +92,208 @@ export function calculateSpellStats(
   specialization?: Specialization
 ): { 
   damage: number; 
+  shieldPower: number;
+  healingPower: number;
   manaCost: number; 
   effect: string;
   target: "self" | "opponent";
   hasValidPropulsion: boolean;
+  bonus: number;
 } {
-  let baseDamageSum = 0;
-  let damageMultiplierProduct = 1;
-  let manaCost = 0;
+  let totalDamage = 0;
+  let totalShield = 0;
+  let totalHealing = 0;
+  let totalManaCost = 0;
   let hasPropulsionInsideContainer = false;
-  
-  const calcComponent = (comp: SpellComponent, inContainer: boolean = false) => {
-    // Apply specialization cost reduction (20% reduction for matching element)
+  const allElements = new Set<string>();
+  const effectTypes = new Set<string>();
+
+  // Process each top-level container
+  components.forEach((comp) => {
+    const result = processContainer(comp, specialization);
+    totalDamage += result.damage;
+    totalShield += result.shield;
+    totalHealing += result.healing;
+    totalManaCost += result.manaCost;
+    
+    if (result.hasPropulsion) hasPropulsionInsideContainer = true;
+    result.elements.forEach(e => allElements.add(e));
+    if (result.effectType) effectTypes.add(result.effectType);
+  });
+
+  function processContainer(comp: SpellComponent, spec?: Specialization): {
+    damage: number;
+    shield: number;
+    healing: number;
+    manaCost: number;
+    hasPropulsion: boolean;
+    elements: Set<string>;
+    effectType: string;
+  } {
+    let baseDamage = comp.baseDamage;
+    let damageMultiplier = comp.damageMultiplier;
+    let shield = comp.shieldPower || 0;
+    let healing = comp.healingPower || 0;
     let componentCost = comp.manaCost;
-    if (specialization === "pyromancer" && comp.element === "fire") {
+    let hasPropulsion = false;
+    const elements = new Set<string>([comp.element]);
+    let effectType = comp.effectType || "damage";
+
+    // Apply specialization cost reduction
+    if (spec === "pyromancer" && comp.element === "fire") {
       componentCost = Math.floor(componentCost * 0.8);
-    } else if (specialization === "aquamancer" && comp.element === "water") {
+    } else if (spec === "aquamancer" && comp.element === "water") {
       componentCost = Math.floor(componentCost * 0.8);
     }
-    manaCost += componentCost;
-    
-    baseDamageSum += comp.baseDamage;
-    damageMultiplierProduct *= comp.damageMultiplier;
-    
-    if (comp.role === "propulsion" && inContainer) {
-      hasPropulsionInsideContainer = true;
-    }
-    
+
+    let manaCost = componentCost;
+
+    // Process children
     if (comp.children) {
-      comp.children.forEach(child => calcComponent(child, comp.role === "container"));
+      comp.children.forEach((child) => {
+        baseDamage += child.baseDamage;
+        damageMultiplier *= child.damageMultiplier;
+        shield += child.shieldPower || 0;
+        healing += child.healingPower || 0;
+        
+        let childCost = child.manaCost;
+        if (spec === "pyromancer" && child.element === "fire") {
+          childCost = Math.floor(childCost * 0.8);
+        } else if (spec === "aquamancer" && child.element === "water") {
+          childCost = Math.floor(childCost * 0.8);
+        }
+        manaCost += childCost;
+        
+        elements.add(child.element);
+        
+        if (child.role === "propulsion" && comp.role === "container") {
+          hasPropulsion = true;
+        }
+        
+        if (child.effectType === "shield") effectType = "shield";
+        if (child.effectType === "healing") effectType = "healing";
+      });
     }
-  };
-  
-  components.forEach(comp => calcComponent(comp, false));
-  
-  // Cap multiplier to prevent extreme damage spikes
-  const cappedMultiplier = Math.min(damageMultiplierProduct, 10);
-  
-  // Calculate base damage
-  let uncappedDamage = Math.floor(baseDamageSum * cappedMultiplier);
-  
-  // Apply specialization damage bonus (20% increase for matching element)
-  if (specialization) {
-    const hasMatchingElement = (element: string) => 
-      components.some(c => c.element === element || c.children?.some(ch => ch.element === element));
-    
-    if (specialization === "pyromancer" && hasMatchingElement("fire")) {
-      uncappedDamage = Math.floor(uncappedDamage * 1.2);
-    } else if (specialization === "aquamancer" && hasMatchingElement("water")) {
-      uncappedDamage = Math.floor(uncappedDamage * 1.2);
+
+    // Calculate damage for this container
+    const cappedMultiplier = Math.min(damageMultiplier, 10);
+    let containerDamage = Math.floor(baseDamage * cappedMultiplier);
+
+    // Apply specialization damage bonus
+    if (spec === "pyromancer" && elements.has("fire")) {
+      containerDamage = Math.floor(containerDamage * 1.2);
+    } else if (spec === "aquamancer" && elements.has("water")) {
+      containerDamage = Math.floor(containerDamage * 1.2);
     }
+
+    containerDamage = Math.min(containerDamage, 100);
+
+    return {
+      damage: effectType === "damage" ? containerDamage : 0,
+      shield: effectType === "shield" ? shield : 0,
+      healing: effectType === "healing" ? healing : 0,
+      manaCost,
+      hasPropulsion,
+      elements,
+      effectType,
+    };
   }
-  
-  // Apply hard cap at 100
-  const damage = Math.min(uncappedDamage, 100);
-  
-  // Determine target: only targets opponent if propulsion is properly nested in container
+
   const target = hasPropulsionInsideContainer ? "opponent" : "self";
-  
-  // Determine effect name
-  const hasFire = components.some(c => c.element === "fire" || c.children?.some(ch => ch.element === "fire"));
-  const hasWater = components.some(c => c.element === "water" || c.children?.some(ch => ch.element === "water"));
-  const hasEarth = components.some(c => c.element === "earth" || c.children?.some(ch => ch.element === "earth"));
-  const hasAir = components.some(c => c.element === "air" || c.children?.some(ch => ch.element === "air"));
-  
-  let effect = "Basic Spell";
-  
-  if (hasPropulsionInsideContainer && hasFire && hasEarth) {
-    effect = "Fireball";
-  } else if (hasPropulsionInsideContainer && hasWater) {
-    effect = "Frost Bolt";
-  } else if (hasFire && hasWater) {
-    effect = "Steam Blast";
-  } else if (hasEarth && hasWater) {
-    effect = "Mud Mixture";
-  } else if (hasFire) {
-    effect = "Fire Spell";
-  } else if (hasWater) {
-    effect = "Water Spell";
-  } else if (hasEarth) {
-    effect = "Earth Spell";
-  } else if (hasAir) {
-    effect = "Air Spell";
-  }
-  
+
+  // Determine effect name and bonus (simplified version for backend)
+  const elementsArray = Array.from(allElements);
+  const { effectName, bonus } = determineEffectNameBackend(elementsArray, effectTypes, hasPropulsionInsideContainer);
+
   return { 
-    damage, 
-    manaCost, 
-    effect,
+    damage: totalDamage, 
+    shieldPower: totalShield,
+    healingPower: totalHealing,
+    manaCost: totalManaCost, 
+    effect: effectName,
     target,
-    hasValidPropulsion: hasPropulsionInsideContainer
+    hasValidPropulsion: hasPropulsionInsideContainer,
+    bonus,
   };
+}
+
+function determineEffectNameBackend(
+  elements: string[],
+  effectTypes: Set<string>,
+  hasPropulsion: boolean
+): { effectName: string; bonus: number } {
+  const hasFire = elements.includes("fire");
+  const hasWater = elements.includes("water");
+  const hasEarth = elements.includes("earth");
+  const hasAir = elements.includes("air");
+  const hasShield = effectTypes.has("shield");
+  const hasHealing = effectTypes.has("healing");
+  const hasDamage = effectTypes.has("damage");
+
+  let effectName = "Unknown Spell";
+  let bonus = 0;
+
+  // Creative multi-element combinations
+  if (hasFire && hasWater && hasAir && hasPropulsion) {
+    effectName = "Tempest Storm";
+    bonus = 5;
+  } else if (hasFire && hasEarth && hasWater && hasPropulsion) {
+    effectName = "Lava Burst";
+    bonus = 5;
+  } else if (hasWater && hasAir && hasPropulsion) {
+    effectName = "Blizzard";
+    bonus = 3;
+  } else if (hasFire && hasWater && hasPropulsion) {
+    effectName = "Steam Blast";
+    bonus = 3;
+  } else if (hasEarth && hasWater && hasPropulsion) {
+    effectName = "Mud Torrent";
+    bonus = 2;
+  } else if (hasFire && hasEarth && hasPropulsion) {
+    effectName = "Fireball";
+  } else if (hasWater && hasPropulsion) {
+    effectName = "Frost Bolt";
+  } else if (hasFire && hasPropulsion) {
+    effectName = "Fire Blast";
+  } else if (hasEarth && hasPropulsion) {
+    effectName = "Stone Strike";
+  } else if (hasAir && hasPropulsion) {
+    effectName = "Wind Blast";
+  }
+
+  // Shield spell names
+  if (hasShield) {
+    if (hasWater && hasFire) {
+      effectName = effectName === "Unknown Spell" ? "Steam Shield" : `${effectName} + Steam Shield`;
+    } else if (hasWater) {
+      effectName = effectName === "Unknown Spell" ? "Ice Barrier" : `${effectName} + Ice Barrier`;
+    } else if (hasEarth) {
+      effectName = effectName === "Unknown Spell" ? "Stone Wall" : `${effectName} + Stone Wall`;
+    } else if (hasFire) {
+      effectName = effectName === "Unknown Spell" ? "Flame Guard" : `${effectName} + Flame Guard`;
+    } else if (hasAir) {
+      effectName = effectName === "Unknown Spell" ? "Wind Ward" : `${effectName} + Wind Ward`;
+    }
+  }
+
+  // Healing spell names
+  if (hasHealing) {
+    if (hasWater) {
+      effectName = effectName === "Unknown Spell" ? "Healing Waters" : `${effectName} + Healing Waters`;
+    } else if (hasEarth) {
+      effectName = effectName === "Unknown Spell" ? "Life Essence" : `${effectName} + Life Essence`;
+    } else if (hasAir) {
+      effectName = effectName === "Unknown Spell" ? "Vital Breeze" : `${effectName} + Vital Breeze`;
+    }
+  }
+
+  // Multi-spell bonuses
+  if (hasDamage && hasShield) bonus += 2;
+  if (hasDamage && hasHealing) bonus += 2;
+  if (hasShield && hasHealing) bonus += 2;
+  if (hasDamage && hasShield && hasHealing) bonus += 3;
+
+  return { effectName, bonus };
 }
 
 export function validateSpell(
@@ -275,6 +386,38 @@ export function applySimultaneousDamage(state: GameState, damageToPlayer: number
     health: Math.max(0, newState.opponent.health - damageToOpponent),
   };
   
+  return newState;
+}
+
+export function applyCombatResolution(
+  state: GameState,
+  playerSpell: { damage: number; shieldPower: number; healingPower: number; bonus: number },
+  aiSpell: { damage: number; shieldPower: number; healingPower: number; bonus: number }
+): GameState {
+  let newState = { ...state };
+
+  // Step 1: Apply bonus damage
+  const playerDamage = playerSpell.damage + playerSpell.bonus;
+  const aiDamage = aiSpell.damage + aiSpell.bonus;
+
+  // Step 2: Reduce damage by shields
+  const damageToPlayer = Math.max(0, aiDamage - playerSpell.shieldPower);
+  const damageToOpponent = Math.max(0, playerDamage - aiSpell.shieldPower);
+
+  // Step 3: Apply damage simultaneously
+  newState = applySimultaneousDamage(newState, damageToPlayer, damageToOpponent);
+
+  // Step 4: Apply healing
+  newState.player = {
+    ...newState.player,
+    health: Math.min(newState.player.maxHealth, newState.player.health + playerSpell.healingPower),
+  };
+
+  newState.opponent = {
+    ...newState.opponent,
+    health: Math.min(newState.opponent.maxHealth, newState.opponent.health + aiSpell.healingPower),
+  };
+
   return newState;
 }
 

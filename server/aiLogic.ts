@@ -3,218 +3,249 @@ import { randomUUID } from "crypto";
 import { calculateSpellStats } from "./gameLogic";
 
 const availableComponents: SpellComponent[] = [
-  // Fire
-  { id: "spark", name: "Spark", element: "fire", type: "action", role: "activation", description: "Ignites", manaCost: 5, baseDamage: 1, damageMultiplier: 1 },
-  { id: "flame", name: "Flame", element: "fire", type: "material", role: "activation", description: "Pure fire", manaCost: 10, baseDamage: 3, damageMultiplier: 1 },
-  { id: "sulfur", name: "Sulfur", element: "earth", type: "material", role: "material", description: "Flammable", manaCost: 8, baseDamage: 0, damageMultiplier: 4 },
-  { id: "ember", name: "Ember", element: "fire", type: "material", role: "activation", description: "Heat", manaCost: 6, baseDamage: 2, damageMultiplier: 1 },
+  // Air Elements
+  { id: "air-sphere", name: "Air Sphere", element: "air", type: "container", role: "container", description: "Hollow sphere of compressed air", manaCost: 10, baseDamage: 0, damageMultiplier: 1 },
+  { id: "gust", name: "Gust", element: "air", type: "action", role: "propulsion", description: "Propels objects forward", manaCost: 8, baseDamage: 0, damageMultiplier: 1 },
+  { id: "vortex", name: "Vortex", element: "air", type: "container", role: "container", description: "Swirling air container", manaCost: 12, baseDamage: 0, damageMultiplier: 1 },
+  { id: "vital-breeze", name: "Vital Breeze", element: "air", type: "material", role: "material", description: "Rejuvenating wind essence", manaCost: 6, baseDamage: 0, damageMultiplier: 1, effectType: "healing", healingPower: 10 },
+  { id: "wind", name: "Wind", element: "air", type: "material", role: "material", description: "Flowing air current", manaCost: 6, baseDamage: 0, damageMultiplier: 1, effectType: "shield", shieldPower: 8 },
   
-  // Water
-  { id: "ice", name: "Ice", element: "water", type: "material", role: "material", description: "Frozen", manaCost: 8, baseDamage: 0, damageMultiplier: 3 },
-  { id: "water", name: "Water", element: "water", type: "material", role: "material", description: "Liquid", manaCost: 7, baseDamage: 0, damageMultiplier: 2 },
-  { id: "frost", name: "Frost", element: "water", type: "action", role: "activation", description: "Freezes", manaCost: 9, baseDamage: 2, damageMultiplier: 1 },
-  { id: "mist", name: "Mist", element: "water", type: "material", role: "material", description: "Vapor", manaCost: 5, baseDamage: 0, damageMultiplier: 2 },
+  // Earth Elements
+  { id: "clay", name: "Clay", element: "earth", type: "material", role: "material", description: "Restorative earth essence", manaCost: 5, baseDamage: 0, damageMultiplier: 1, effectType: "healing", healingPower: 10 },
+  { id: "crystal", name: "Crystal", element: "earth", type: "material", role: "material", description: "Crystalline barrier shield", manaCost: 12, baseDamage: 0, damageMultiplier: 1, effectType: "shield", shieldPower: 15 },
+  { id: "sand", name: "Sand", element: "earth", type: "material", role: "material", description: "Fine granular material", manaCost: 4, baseDamage: 0, damageMultiplier: 2 },
+  { id: "stone", name: "Stone", element: "earth", type: "material", role: "material", description: "Dense rock fragment", manaCost: 6, baseDamage: 0, damageMultiplier: 3 },
   
-  // Earth
-  { id: "stone", name: "Stone", element: "earth", type: "material", role: "material", description: "Dense", manaCost: 6, baseDamage: 0, damageMultiplier: 3 },
-  { id: "sand", name: "Sand", element: "earth", type: "material", role: "material", description: "Granular", manaCost: 4, baseDamage: 0, damageMultiplier: 2 },
-  { id: "crystal", name: "Crystal", element: "earth", type: "material", role: "material", description: "Amplifies", manaCost: 12, baseDamage: 0, damageMultiplier: 5 },
+  // Fire Elements
+  { id: "ember", name: "Ember", element: "fire", type: "material", role: "activation", description: "Smoldering heat source", manaCost: 6, baseDamage: 2, damageMultiplier: 1 },
+  { id: "flame", name: "Flame", element: "fire", type: "material", role: "activation", description: "Pure elemental fire", manaCost: 10, baseDamage: 3, damageMultiplier: 1 },
+  { id: "flame-guard", name: "Flame Guard", element: "fire", type: "material", role: "material", description: "Protective fire barrier", manaCost: 9, baseDamage: 0, damageMultiplier: 1, effectType: "shield", shieldPower: 10 },
+  { id: "spark", name: "Spark", element: "fire", type: "action", role: "activation", description: "Ignites flammable materials", manaCost: 5, baseDamage: 1, damageMultiplier: 1 },
+  { id: "sulfur", name: "Sulfur", element: "earth", type: "material", role: "material", description: "Highly flammable mineral", manaCost: 8, baseDamage: 0, damageMultiplier: 4 },
   
-  // Air
-  { id: "air-sphere", name: "Air Sphere", element: "air", type: "container", role: "container", description: "Container", manaCost: 10, baseDamage: 0, damageMultiplier: 1 },
-  { id: "gust", name: "Gust", element: "air", type: "action", role: "propulsion", description: "Propels", manaCost: 8, baseDamage: 0, damageMultiplier: 1 },
-  { id: "wind", name: "Wind", element: "air", type: "material", role: "propulsion", description: "Current", manaCost: 6, baseDamage: 0, damageMultiplier: 1 },
-  { id: "vortex", name: "Vortex", element: "air", type: "container", role: "container", description: "Swirling", manaCost: 12, baseDamage: 0, damageMultiplier: 1 },
+  // Water Elements
+  { id: "frost", name: "Frost", element: "water", type: "action", role: "activation", description: "Freezes on contact", manaCost: 9, baseDamage: 2, damageMultiplier: 1 },
+  { id: "ice", name: "Ice", element: "water", type: "material", role: "material", description: "Frozen barrier shield", manaCost: 8, baseDamage: 0, damageMultiplier: 1, effectType: "shield", shieldPower: 12 },
+  { id: "mist", name: "Mist", element: "water", type: "material", role: "material", description: "Healing mist vapor", manaCost: 5, baseDamage: 0, damageMultiplier: 1, effectType: "healing", healingPower: 8 },
+  { id: "water", name: "Water", element: "water", type: "material", role: "material", description: "Pure healing essence", manaCost: 7, baseDamage: 0, damageMultiplier: 1, effectType: "healing", healingPower: 12 },
 ];
 
-interface SpellStrategy {
-  name: string;
-  components: SpellComponent[];
-  priority: number;
-}
-
-const spellStrategies: SpellStrategy[] = [
-  // Devastating Crystal-based spells (highest priority)
-  {
-    name: "Crystal Inferno",
-    priority: 16,
-    components: [
-      availableComponents.find(c => c.id === "flame")!,
-      { ...availableComponents.find(c => c.id === "vortex")!, children: [
-        availableComponents.find(c => c.id === "crystal")!,
-        availableComponents.find(c => c.id === "sulfur")!,
-        availableComponents.find(c => c.id === "gust")!,
-      ]},
-    ],
-  },
-  {
-    name: "Crystal Frost",
-    priority: 15,
-    components: [
-      availableComponents.find(c => c.id === "frost")!,
-      { ...availableComponents.find(c => c.id === "vortex")!, children: [
-        availableComponents.find(c => c.id === "crystal")!,
-        availableComponents.find(c => c.id === "ice")!,
-        availableComponents.find(c => c.id === "gust")!,
-      ]},
-    ],
-  },
-  {
-    name: "Volcanic Blast",
-    priority: 14,
-    components: [
-      availableComponents.find(c => c.id === "flame")!,
-      { ...availableComponents.find(c => c.id === "air-sphere")!, children: [
-        availableComponents.find(c => c.id === "sulfur")!,
-        availableComponents.find(c => c.id === "stone")!,
-        availableComponents.find(c => c.id === "gust")!,
-      ]},
-    ],
-  },
-  {
-    name: "Glacial Strike",
-    priority: 13,
-    components: [
-      availableComponents.find(c => c.id === "frost")!,
-      { ...availableComponents.find(c => c.id === "air-sphere")!, children: [
-        availableComponents.find(c => c.id === "ice")!,
-        availableComponents.find(c => c.id === "stone")!,
-        availableComponents.find(c => c.id === "wind")!,
-      ]},
-    ],
-  },
-  {
-    name: "Inferno Wave",
-    priority: 12,
-    components: [
-      availableComponents.find(c => c.id === "spark")!,
-      { ...availableComponents.find(c => c.id === "vortex")!, children: [
-        availableComponents.find(c => c.id === "sulfur")!,
-        availableComponents.find(c => c.id === "sand")!,
-        availableComponents.find(c => c.id === "gust")!,
-      ]},
-    ],
-  },
-  {
-    name: "Arctic Missile",
-    priority: 11,
-    components: [
-      availableComponents.find(c => c.id === "frost")!,
-      { ...availableComponents.find(c => c.id === "vortex")!, children: [
-        availableComponents.find(c => c.id === "ice")!,
-        availableComponents.find(c => c.id === "water")!,
-        availableComponents.find(c => c.id === "wind")!,
-      ]},
-    ],
-  },
-  // Original strategies (lower priority)
+// Individual container templates for building multi-spell combinations
+const damageSpells = [
   {
     name: "Fireball",
-    priority: 10,
-    components: [
-      { ...availableComponents.find(c => c.id === "air-sphere")!, children: [
-        availableComponents.find(c => c.id === "sulfur")!,
-        availableComponents.find(c => c.id === "spark")!,
-        availableComponents.find(c => c.id === "gust")!,
-      ]},
-    ],
+    manaCost: 23,
+    components: [{ ...availableComponents.find(c => c.id === "air-sphere")!, children: [
+      availableComponents.find(c => c.id === "sulfur")!,
+      availableComponents.find(c => c.id === "spark")!,
+      availableComponents.find(c => c.id === "gust")!,
+    ]}],
   },
   {
     name: "Frost Bolt",
-    priority: 9,
-    components: [
-      { ...availableComponents.find(c => c.id === "air-sphere")!, children: [
-        availableComponents.find(c => c.id === "ice")!,
-        availableComponents.find(c => c.id === "frost")!,
-        availableComponents.find(c => c.id === "wind")!,
-      ]},
-    ],
+    manaCost: 27,
+    components: [{ ...availableComponents.find(c => c.id === "air-sphere")!, children: [
+      availableComponents.find(c => c.id === "frost")!,
+      availableComponents.find(c => c.id === "mist")!,
+      availableComponents.find(c => c.id === "gust")!,
+    ]}],
   },
   {
-    name: "Fire Strike",
-    priority: 8,
-    components: [
-      { ...availableComponents.find(c => c.id === "vortex")!, children: [
-        availableComponents.find(c => c.id === "flame")!,
-        availableComponents.find(c => c.id === "gust")!,
-      ]},
-    ],
+    name: "Stone Strike",
+    manaCost: 24,
+    components: [{ ...availableComponents.find(c => c.id === "air-sphere")!, children: [
+      availableComponents.find(c => c.id === "stone")!,
+      availableComponents.find(c => c.id === "sand")!,
+      availableComponents.find(c => c.id === "gust")!,
+    ]}],
   },
   {
-    name: "Ice Blast",
-    priority: 7,
-    components: [
-      { ...availableComponents.find(c => c.id === "air-sphere")!, children: [
-        availableComponents.find(c => c.id === "ice")!,
-        availableComponents.find(c => c.id === "water")!,
-        availableComponents.find(c => c.id === "wind")!,
-      ]},
-    ],
+    name: "Volcanic Blast",
+    manaCost: 32,
+    components: [{ ...availableComponents.find(c => c.id === "vortex")!, children: [
+      availableComponents.find(c => c.id === "sulfur")!,
+      availableComponents.find(c => c.id === "flame")!,
+      availableComponents.find(c => c.id === "gust")!,
+    ]}],
+  },
+];
+
+const shieldSpells = [
+  {
+    name: "Ice Barrier",
+    manaCost: 26,
+    components: [{ ...availableComponents.find(c => c.id === "air-sphere")!, children: [
+      availableComponents.find(c => c.id === "ice")!,
+      availableComponents.find(c => c.id === "wind")!,
+    ]}],
   },
   {
-    name: "Ember Strike",
-    priority: 6,
-    components: [
-      { ...availableComponents.find(c => c.id === "air-sphere")!, children: [
-        availableComponents.find(c => c.id === "ember")!,
-        availableComponents.find(c => c.id === "sand")!,
-        availableComponents.find(c => c.id === "gust")!,
-      ]},
-    ],
+    name: "Crystal Shield",
+    manaCost: 28,
+    components: [{ ...availableComponents.find(c => c.id === "air-sphere")!, children: [
+      availableComponents.find(c => c.id === "crystal")!,
+      availableComponents.find(c => c.id === "stone")!,
+    ]}],
   },
   {
-    name: "Basic Missile",
-    priority: 5,
-    components: [
-      { ...availableComponents.find(c => c.id === "air-sphere")!, children: [
-        availableComponents.find(c => c.id === "stone")!,
-        availableComponents.find(c => c.id === "wind")!,
-      ]},
-    ],
+    name: "Flame Guard",
+    manaCost: 25,
+    components: [{ ...availableComponents.find(c => c.id === "air-sphere")!, children: [
+      availableComponents.find(c => c.id === "flame-guard")!,
+      availableComponents.find(c => c.id === "sand")!,
+    ]}],
+  },
+];
+
+const healingSpells = [
+  {
+    name: "Healing Waters",
+    manaCost: 24,
+    components: [{ ...availableComponents.find(c => c.id === "air-sphere")!, children: [
+      availableComponents.find(c => c.id === "water")!,
+      availableComponents.find(c => c.id === "mist")!,
+    ]}],
+  },
+  {
+    name: "Life Essence",
+    manaCost: 22,
+    components: [{ ...availableComponents.find(c => c.id === "air-sphere")!, children: [
+      availableComponents.find(c => c.id === "clay")!,
+      availableComponents.find(c => c.id === "sand")!,
+    ]}],
+  },
+  {
+    name: "Vital Breeze",
+    manaCost: 22,
+    components: [{ ...availableComponents.find(c => c.id === "air-sphere")!, children: [
+      availableComponents.find(c => c.id === "vital-breeze")!,
+      availableComponents.find(c => c.id === "wind")!,
+    ]}],
   },
 ];
 
 export function generateAISpell(
   availableMana: number, 
   difficulty: number = 0.9,
-  specialization?: "pyromancer" | "aquamancer"
+  specialization?: "pyromancer" | "aquamancer",
+  aiHealth?: number,
+  playerHealth?: number
 ): SpellComponent[] {
-  // Sort strategies by priority, boosting priority for specialization-matching spells
-  const sortedStrategies = [...spellStrategies].map(strategy => {
-    let adjustedPriority = strategy.priority;
-    
-    // Boost priority for spells matching AI specialization
-    if (specialization === "pyromancer") {
-      // Prioritize fire spells (Crystal Inferno, Volcanic Blast, Inferno Wave, Fireball, Fire Strike)
-      if (["Crystal Inferno", "Volcanic Blast", "Inferno Wave", "Fireball", "Fire Strike", "Ember Strike"].includes(strategy.name)) {
-        adjustedPriority += 3;
-      }
-    } else if (specialization === "aquamancer") {
-      // Prioritize water/ice spells (Crystal Frost, Glacial Strike, Arctic Missile, Frost Bolt, Ice Blast)
-      if (["Crystal Frost", "Glacial Strike", "Arctic Missile", "Frost Bolt", "Ice Blast"].includes(strategy.name)) {
-        adjustedPriority += 3;
-      }
-    }
-    
-    return { ...strategy, priority: adjustedPriority };
-  }).sort((a, b) => b.priority - a.priority);
-  
-  // Try to use the best spell we can afford
-  for (const strategy of sortedStrategies) {
-    const components = deepCloneComponents(strategy.components);
-    const stats = calculateSpellStats(components, specialization);
-    
-    // Ensure spell costs within budget AND targets opponent
-    if (stats.manaCost <= availableMana && stats.target === "opponent") {
-      // Add some randomness based on difficulty
-      if (Math.random() < difficulty) {
-        return assignUniqueIds(components);
-      }
+  // 20% chance to enter experimental mode
+  const isExperimental = Math.random() < 0.2;
+
+  if (isExperimental) {
+    return generateExperimentalSpell(availableMana, specialization);
+  }
+
+  // Strategic mode: Build 1-3 containers based on situation
+  const containers: SpellComponent[] = [];
+  let remainingMana = availableMana;
+
+  // Determine strategy based on health
+  const healthRatio = aiHealth && playerHealth ? aiHealth / playerHealth : 1;
+  const needsHealing = healthRatio < 0.6;
+  const needsDefense = healthRatio < 0.8;
+
+  // Priority 1: Always try to deal damage
+  const damageSpell = selectBestAffordableSpell(damageSpells, remainingMana, specialization);
+  if (damageSpell) {
+    containers.push(...deepCloneComponents(damageSpell.components));
+    remainingMana -= damageSpell.manaCost;
+  }
+
+  // Priority 2: Add healing if low health
+  if (needsHealing && remainingMana >= 20) {
+    const healSpell = selectBestAffordableSpell(healingSpells, remainingMana, specialization);
+    if (healSpell) {
+      containers.push(...deepCloneComponents(healSpell.components));
+      remainingMana -= healSpell.manaCost;
     }
   }
-  
-  // If we can't afford any strategy or none passed validation, return empty array (AI passes)
-  // We don't want AI to build random simple spells that might damage itself
+
+  // Priority 3: Add shield if in danger or have extra mana
+  if ((needsDefense || remainingMana >= 25) && remainingMana >= 20) {
+    const shieldSpell = selectBestAffordableSpell(shieldSpells, remainingMana, specialization);
+    if (shieldSpell) {
+      containers.push(...deepCloneComponents(shieldSpell.components));
+      remainingMana -= shieldSpell.manaCost;
+    }
+  }
+
+  // Validate the complete spell
+  if (containers.length > 0) {
+    const stats = calculateSpellStats(containers, specialization);
+    if (stats.manaCost <= availableMana && stats.hasValidPropulsion) {
+      return assignUniqueIds(containers);
+    }
+  }
+
+  // Fallback: Try single damage spell
+  for (const spell of damageSpells) {
+    const components = deepCloneComponents(spell.components);
+    const stats = calculateSpellStats(components, specialization);
+    if (stats.manaCost <= availableMana && stats.hasValidPropulsion) {
+      return assignUniqueIds(components);
+    }
+  }
+
+  return [];
+}
+
+function selectBestAffordableSpell(
+  spellList: Array<{ name: string; manaCost: number; components: SpellComponent[] }>,
+  maxMana: number,
+  specialization?: "pyromancer" | "aquamancer"
+): { name: string; manaCost: number; components: SpellComponent[] } | null {
+  // Filter affordable spells
+  const affordable = spellList.filter(s => s.manaCost <= maxMana);
+  if (affordable.length === 0) return null;
+
+  // Prioritize spells matching specialization
+  const matching = affordable.filter(s => {
+    if (specialization === "pyromancer") {
+      return s.name.toLowerCase().includes("fire") || s.name.toLowerCase().includes("flame") || s.name.toLowerCase().includes("volcanic");
+    } else if (specialization === "aquamancer") {
+      return s.name.toLowerCase().includes("frost") || s.name.toLowerCase().includes("ice") || s.name.toLowerCase().includes("water");
+    }
+    return false;
+  });
+
+  // Return matching spell or random affordable spell
+  const pool = matching.length > 0 ? matching : affordable;
+  return pool[Math.floor(Math.random() * pool.length)];
+}
+
+function generateExperimentalSpell(
+  availableMana: number,
+  specialization?: "pyromancer" | "aquamancer"
+): SpellComponent[] {
+  // Experimental mode: Build creative/unusual combinations
+  const allSpellTypes = [...damageSpells, ...shieldSpells, ...healingSpells];
+  const affordable = allSpellTypes.filter(s => s.manaCost <= availableMana);
+
+  if (affordable.length === 0) return [];
+
+  // Randomly pick 1-2 containers
+  const numContainers = Math.random() < 0.5 ? 1 : 2;
+  const containers: SpellComponent[] = [];
+  let remainingMana = availableMana;
+
+  for (let i = 0; i < numContainers && affordable.length > 0; i++) {
+    const spell = affordable[Math.floor(Math.random() * affordable.length)];
+    if (spell.manaCost <= remainingMana) {
+      containers.push(...deepCloneComponents(spell.components));
+      remainingMana -= spell.manaCost;
+    }
+  }
+
+  if (containers.length > 0) {
+    const stats = calculateSpellStats(containers, specialization);
+    if (stats.manaCost <= availableMana) {
+      return assignUniqueIds(containers);
+    }
+  }
+
   return [];
 }
 

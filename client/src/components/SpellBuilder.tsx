@@ -29,6 +29,9 @@ export default function SpellBuilder({
   const spellStats = calculateSpellPower(components);
   const baseDamage = spellStats.damage;
   const baseManaCost = spellStats.manaCost;
+  const shieldPower = spellStats.shieldPower;
+  const healingPower = spellStats.healingPower;
+  const bonus = spellStats.bonus;
   
   // Apply specialization bonus
   const { damage, manaCost, damageBonus, costReduction } = applySpecializationBonus(
@@ -177,26 +180,60 @@ export default function SpellBuilder({
             </div>
           )}
           <div className="flex flex-col gap-3">
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <p className="text-xs text-muted-foreground">Effect</p>
-                <p className="font-semibold text-sm" data-testid="text-spell-effect">{effect}</p>
-              </div>
-              <div>
-                <p className="text-xs text-muted-foreground">Target</p>
-                <p className={`font-semibold text-sm ${target === "self" ? "text-yellow-600 dark:text-yellow-400" : "text-green-600 dark:text-green-400"}`} data-testid="text-spell-target">
-                  {target === "self" ? "Self" : "Opponent"}
+            {bonus > 0 && (
+              <div className="p-2 bg-purple-500/10 border border-purple-500/20 rounded-md">
+                <p className="text-sm font-bold text-purple-600 dark:text-purple-400 text-center">
+                  ✨ Discovered: {effect} ✨
+                </p>
+                <p className="text-xs text-purple-700 dark:text-purple-300 text-center mt-1">
+                  +{bonus} Creative Combination Bonus!
                 </p>
               </div>
+            )}
+            {bonus === 0 && effect !== "Unknown Spell" && (
+              <div className="text-center">
+                <p className="text-sm font-semibold text-primary" data-testid="text-spell-effect">{effect}</p>
+              </div>
+            )}
+            <div className="grid grid-cols-2 gap-3">
+              {damage > 0 && (
+                <div>
+                  <p className="text-xs text-muted-foreground">Damage</p>
+                  <p className="font-semibold text-sm text-destructive" data-testid="text-spell-damage">
+                    {damage}
+                    {damageBonus > 0 && (
+                      <span className="text-xs ml-1 text-green-600 dark:text-green-400">
+                        (+{damageBonus})
+                      </span>
+                    )}
+                    {bonus > 0 && (
+                      <span className="text-xs ml-1 text-purple-600 dark:text-purple-400">
+                        (+{bonus})
+                      </span>
+                    )}
+                  </p>
+                </div>
+              )}
+              {shieldPower > 0 && (
+                <div>
+                  <p className="text-xs text-muted-foreground">Shield</p>
+                  <p className="font-semibold text-sm text-blue-600 dark:text-blue-400" data-testid="text-spell-shield">
+                    {shieldPower}
+                  </p>
+                </div>
+              )}
+              {healingPower > 0 && (
+                <div>
+                  <p className="text-xs text-muted-foreground">Healing</p>
+                  <p className="font-semibold text-sm text-green-600 dark:text-green-400" data-testid="text-spell-healing">
+                    {healingPower}
+                  </p>
+                </div>
+              )}
               <div>
-                <p className="text-xs text-muted-foreground">Damage</p>
-                <p className="font-semibold text-sm text-destructive" data-testid="text-spell-damage">
-                  {damage}
-                  {damageBonus > 0 && (
-                    <span className="text-xs ml-1 text-green-600 dark:text-green-400">
-                      (+{damageBonus} {specializationName} bonus)
-                    </span>
-                  )}
+                <p className="text-xs text-muted-foreground">Target</p>
+                <p className={`font-semibold text-sm ${target === "self" ? "text-yellow-600 dark:text-yellow-400" : "text-primary"}`} data-testid="text-spell-target">
+                  {target === "self" ? "Self" : "Opponent"}
                 </p>
               </div>
               <div>
@@ -205,7 +242,7 @@ export default function SpellBuilder({
                   {manaCost}
                   {costReduction > 0 && (
                     <span className="text-xs ml-1 text-green-600 dark:text-green-400">
-                      (-{costReduction} {specializationName} bonus)
+                      (-{costReduction})
                     </span>
                   )}
                 </p>

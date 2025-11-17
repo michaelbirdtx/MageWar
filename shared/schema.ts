@@ -20,6 +20,7 @@ export type User = typeof users.$inferSelect;
 export type ElementType = "fire" | "water" | "earth" | "air";
 export type ComponentRole = "activation" | "propulsion" | "container" | "material";
 export type Specialization = "pyromancer" | "aquamancer";
+export type EffectType = "damage" | "shield" | "healing";
 
 export interface SpellComponent {
   id: string;
@@ -31,6 +32,9 @@ export interface SpellComponent {
   manaCost: number;
   baseDamage: number;
   damageMultiplier: number;
+  effectType?: EffectType;
+  shieldPower?: number;
+  healingPower?: number;
   children?: SpellComponent[];
 }
 
@@ -40,7 +44,10 @@ export interface Spell {
   components: SpellComponent[];
   totalManaCost: number;
   damage: number;
+  shieldPower: number;
+  healingPower: number;
   effect?: string;
+  bonus?: number;
 }
 
 export interface Mage {
