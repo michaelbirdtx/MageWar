@@ -80,6 +80,10 @@ export function createInitialGameState(playerAttributes: CharacterAttributes): G
     opponent: createMageFromAttributes(aiAttributes, false),
     currentTurn: "player",
     gamePhase: "building",
+    playerSpellLocked: false,
+    aiSpellLocked: false,
+    lockedPlayerSpell: null,
+    lockedAiSpell: null,
   };
 }
 
