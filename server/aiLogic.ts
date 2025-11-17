@@ -1,4 +1,4 @@
-import { SpellComponent, Spell } from "@shared/schema";
+import { SpellComponent, Spell, MAX_SPELLS_PER_ROUND } from "@shared/schema";
 import { randomUUID } from "crypto";
 import { calculateSpellStats } from "./gameLogic";
 
@@ -130,7 +130,7 @@ export function generateAISpell(
     return generateExperimentalSpell(availableMana, specialization);
   }
 
-  // Strategic mode: Build 1-3 containers based on situation
+  // Strategic mode: Build up to MAX_SPELLS_PER_ROUND containers based on situation
   const containers: SpellComponent[] = [];
   let remainingMana = availableMana;
 
@@ -141,13 +141,13 @@ export function generateAISpell(
 
   // Priority 1: Always try to deal damage
   const damageSpell = selectBestAffordableSpell(damageSpells, remainingMana, specialization);
-  if (damageSpell) {
+  if (damageSpell && containers.length < MAX_SPELLS_PER_ROUND) {
     containers.push(...deepCloneComponents(damageSpell.components));
     remainingMana -= damageSpell.manaCost;
   }
 
-  // Priority 2: Add healing if low health
-  if (needsHealing && remainingMana >= 20) {
+  // Priority 2: Add healing if low health (and haven't reached max spells)
+  if (needsHealing && remainingMana >= 20 && containers.length < MAX_SPELLS_PER_ROUND) {
     const healSpell = selectBestAffordableSpell(healingSpells, remainingMana, specialization);
     if (healSpell) {
       containers.push(...deepCloneComponents(healSpell.components));
@@ -155,8 +155,8 @@ export function generateAISpell(
     }
   }
 
-  // Priority 3: Add shield if in danger or have extra mana
-  if ((needsDefense || remainingMana >= 25) && remainingMana >= 20) {
+  // Priority 3: Add shield if in danger or have extra mana (and haven't reached max spells)
+  if ((needsDefense || remainingMana >= 25) && remainingMana >= 20 && containers.length < MAX_SPELLS_PER_ROUND) {
     const shieldSpell = selectBestAffordableSpell(shieldSpells, remainingMana, specialization);
     if (shieldSpell) {
       containers.push(...deepCloneComponents(shieldSpell.components));
@@ -218,12 +218,12 @@ function generateExperimentalSpell(
 
   if (affordable.length === 0) return [];
 
-  // Randomly pick 1-2 containers
-  const numContainers = Math.random() < 0.5 ? 1 : 2;
+  // Randomly pick 1 to MAX_SPELLS_PER_ROUND containers
+  const numContainers = Math.random() < 0.5 ? 1 : MAX_SPELLS_PER_ROUND;
   const containers: SpellComponent[] = [];
   let remainingMana = availableMana;
 
-  for (let i = 0; i < numContainers && affordable.length > 0; i++) {
+  for (let i = 0; i < numContainers && affordable.length > 0 && containers.length < MAX_SPELLS_PER_ROUND; i++) {
     const spell = affordable[Math.floor(Math.random() * affordable.length)];
     if (spell.manaCost <= remainingMana) {
       containers.push(...deepCloneComponents(spell.components));

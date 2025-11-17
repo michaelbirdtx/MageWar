@@ -22,6 +22,9 @@ export type ComponentRole = "activation" | "propulsion" | "container" | "materia
 export type Specialization = "pyromancer" | "aquamancer";
 export type EffectType = "damage" | "shield" | "healing";
 
+// Game Configuration Constants
+export const MAX_SPELLS_PER_ROUND = 2; // Maximum number of containers (spells) per round
+
 export interface SpellComponent {
   id: string;
   baseId?: string; // Original component ID before cloning (for pattern matching)

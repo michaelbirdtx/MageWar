@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { SpellComponent, Specialization } from "@shared/schema";
+import { SpellComponent, Specialization, MAX_SPELLS_PER_ROUND } from "@shared/schema";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Trash2, Sparkles, X } from "lucide-react";
@@ -32,6 +32,7 @@ export default function SpellBuilder({
   const shieldPower = spellStats.shieldPower;
   const healingPower = spellStats.healingPower;
   const bonus = spellStats.bonus;
+  const perSpellBreakdown = spellStats.perSpellBreakdown;
   
   // Apply specialization bonus
   const { damage, manaCost, damageBonus, costReduction } = applySpecializationBonus(
@@ -43,6 +44,8 @@ export default function SpellBuilder({
   
   const { effect, target, validationError } = spellStats;
   const canCast = components.length > 0 && manaCost <= playerMana && !validationError;
+  
+  const hasMultipleSpells = perSpellBreakdown.length > 1;
   
   const specializationName = playerSpecialization === "pyromancer" ? "Pyromancer" : "Aquamancer";
   
@@ -59,6 +62,7 @@ export default function SpellBuilder({
     newComponent.baseId = originalId; // Preserve original ID for pattern matching
     
     if (parentId) {
+      // Dropping inside a container
       const updatedComponents = components.map(comp => {
         if (comp.id === parentId && comp.type === "container") {
           // Limit containers to 4 children max
@@ -74,6 +78,19 @@ export default function SpellBuilder({
       });
       onComponentsChange(updatedComponents);
     } else {
+      // Dropping at top level - only containers allowed
+      if (newComponent.type !== "container") {
+        // Silently ignore non-container drops at top level
+        return;
+      }
+      
+      // Check if we've reached max spells per round
+      const containerCount = components.filter(c => c.type === "container").length;
+      if (containerCount >= MAX_SPELLS_PER_ROUND) {
+        // Silently ignore - max containers reached
+        return;
+      }
+      
       onComponentsChange([...components, newComponent]);
     }
     
@@ -174,7 +191,7 @@ export default function SpellBuilder({
               <p className="text-xs text-destructive font-medium">{validationError}</p>
             </div>
           )}
-          {target === "self" && !validationError && damage > 0 && (
+          {target === "self" && !validationError && damage > 0 && !hasMultipleSpells && (
             <div className="mb-3 p-2 bg-yellow-500/10 border border-yellow-500/20 rounded-md">
               <p className="text-xs text-yellow-700 dark:text-yellow-400 font-medium">
                 Warning: This spell will damage YOU for {damage} HP
@@ -192,64 +209,123 @@ export default function SpellBuilder({
                 </p>
               </div>
             )}
-            {bonus === 0 && effect !== "Unknown Spell" && (
+            {bonus === 0 && effect !== "Unknown Spell" && !hasMultipleSpells && (
               <div className="text-center">
                 <p className="text-sm font-semibold text-primary" data-testid="text-spell-effect">{effect}</p>
               </div>
             )}
-            <div className="grid grid-cols-2 gap-3">
-              {damage > 0 && (
+            
+            {/* Multi-spell breakdown view */}
+            {hasMultipleSpells && (
+              <div className="flex flex-col gap-3">
+                <p className="text-xs font-semibold text-muted-foreground text-center">Spell Breakdown</p>
+                {perSpellBreakdown.map((spell, index) => (
+                  <div key={index} className="p-3 bg-card border border-border rounded-md">
+                    <div className="flex items-center justify-between mb-2">
+                      <p className="text-sm font-semibold text-primary">Spell {index + 1}: {spell.containerName}</p>
+                      <p className={`text-xs font-semibold ${spell.target === "self" ? "text-yellow-600 dark:text-yellow-400" : "text-cyan-600 dark:text-cyan-400"}`}>
+                        → {spell.target === "self" ? "Self" : "Opponent"}
+                      </p>
+                    </div>
+                    <div className="grid grid-cols-3 gap-2">
+                      {spell.damage > 0 && (
+                        <div>
+                          <p className="text-xs text-muted-foreground">Damage</p>
+                          <p className="text-sm font-semibold text-destructive">{spell.damage}</p>
+                        </div>
+                      )}
+                      {spell.shieldPower > 0 && (
+                        <div>
+                          <p className="text-xs text-muted-foreground">Shield</p>
+                          <p className="text-sm font-semibold text-blue-600 dark:text-blue-400">{spell.shieldPower}</p>
+                        </div>
+                      )}
+                      {spell.healingPower > 0 && (
+                        <div>
+                          <p className="text-xs text-muted-foreground">Healing</p>
+                          <p className="text-sm font-semibold text-green-600 dark:text-green-400">{spell.healingPower}</p>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+            
+            {/* Single spell simple view */}
+            {!hasMultipleSpells && (
+              <div className="grid grid-cols-2 gap-3">
+                {damage > 0 && (
+                  <div>
+                    <p className="text-xs text-muted-foreground">Damage</p>
+                    <p className="font-semibold text-sm text-destructive" data-testid="text-spell-damage">
+                      {damage}
+                      {damageBonus > 0 && (
+                        <span className="text-xs ml-1 text-green-600 dark:text-green-400">
+                          (+{damageBonus})
+                        </span>
+                      )}
+                      {bonus > 0 && (
+                        <span className="text-xs ml-1 text-purple-600 dark:text-purple-400">
+                          (+{bonus})
+                        </span>
+                      )}
+                    </p>
+                  </div>
+                )}
+                {shieldPower > 0 && (
+                  <div>
+                    <p className="text-xs text-muted-foreground">Shield</p>
+                    <p className="font-semibold text-sm text-blue-600 dark:text-blue-400" data-testid="text-spell-shield">
+                      {shieldPower}
+                    </p>
+                  </div>
+                )}
+                {healingPower > 0 && (
+                  <div>
+                    <p className="text-xs text-muted-foreground">Healing</p>
+                    <p className="font-semibold text-sm text-green-600 dark:text-green-400" data-testid="text-spell-healing">
+                      {healingPower}
+                    </p>
+                  </div>
+                )}
                 <div>
-                  <p className="text-xs text-muted-foreground">Damage</p>
-                  <p className="font-semibold text-sm text-destructive" data-testid="text-spell-damage">
-                    {damage}
-                    {damageBonus > 0 && (
+                  <p className="text-xs text-muted-foreground">Target</p>
+                  <p className={`font-semibold text-sm ${target === "self" ? "text-yellow-600 dark:text-yellow-400" : "text-primary"}`} data-testid="text-spell-target">
+                    {target === "self" ? "Self" : "Opponent"}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-xs text-muted-foreground">Mana Cost</p>
+                  <p className={`font-semibold text-sm ${manaCost > playerMana ? "text-destructive" : "text-primary"}`} data-testid="text-spell-cost">
+                    {manaCost}
+                    {costReduction > 0 && (
                       <span className="text-xs ml-1 text-green-600 dark:text-green-400">
-                        (+{damageBonus})
-                      </span>
-                    )}
-                    {bonus > 0 && (
-                      <span className="text-xs ml-1 text-purple-600 dark:text-purple-400">
-                        (+{bonus})
+                        (-{costReduction})
                       </span>
                     )}
                   </p>
                 </div>
-              )}
-              {shieldPower > 0 && (
-                <div>
-                  <p className="text-xs text-muted-foreground">Shield</p>
-                  <p className="font-semibold text-sm text-blue-600 dark:text-blue-400" data-testid="text-spell-shield">
-                    {shieldPower}
+              </div>
+            )}
+            
+            {/* Total mana cost for multi-spell */}
+            {hasMultipleSpells && (
+              <div className="pt-2 border-t border-border">
+                <div className="flex justify-between items-center">
+                  <p className="text-sm font-semibold text-muted-foreground">Total Mana Cost</p>
+                  <p className={`text-lg font-bold ${manaCost > playerMana ? "text-destructive" : "text-primary"}`}>
+                    {manaCost}
+                    {costReduction > 0 && (
+                      <span className="text-xs ml-1 text-green-600 dark:text-green-400">
+                        (-{costReduction})
+                      </span>
+                    )}
                   </p>
                 </div>
-              )}
-              {healingPower > 0 && (
-                <div>
-                  <p className="text-xs text-muted-foreground">Healing</p>
-                  <p className="font-semibold text-sm text-green-600 dark:text-green-400" data-testid="text-spell-healing">
-                    {healingPower}
-                  </p>
-                </div>
-              )}
-              <div>
-                <p className="text-xs text-muted-foreground">Target</p>
-                <p className={`font-semibold text-sm ${target === "self" ? "text-yellow-600 dark:text-yellow-400" : "text-primary"}`} data-testid="text-spell-target">
-                  {target === "self" ? "Self" : "Opponent"}
-                </p>
               </div>
-              <div>
-                <p className="text-xs text-muted-foreground">Mana Cost</p>
-                <p className={`font-semibold text-sm ${manaCost > playerMana ? "text-destructive" : "text-primary"}`} data-testid="text-spell-cost">
-                  {manaCost}
-                  {costReduction > 0 && (
-                    <span className="text-xs ml-1 text-green-600 dark:text-green-400">
-                      (-{costReduction})
-                    </span>
-                  )}
-                </p>
-              </div>
-            </div>
+            )}
+            
             <Button
               onClick={onCastSpell}
               disabled={!canCast}

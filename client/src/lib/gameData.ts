@@ -218,6 +218,16 @@ export const availableComponents: SpellComponent[] = [
   },
 ];
 
+export interface SpellBreakdown {
+  containerName: string;
+  damage: number;
+  shieldPower: number;
+  healingPower: number;
+  manaCost: number;
+  target: "self" | "opponent";
+  effectType: string;
+}
+
 export function calculateSpellPower(components: SpellComponent[]): {
   damage: number;
   shieldPower: number;
@@ -228,6 +238,7 @@ export function calculateSpellPower(components: SpellComponent[]): {
   hasValidPropulsion: boolean;
   validationError?: string;
   bonus: number;
+  perSpellBreakdown: SpellBreakdown[];
 } {
   let totalDamage = 0;
   let totalShield = 0;
@@ -237,6 +248,7 @@ export function calculateSpellPower(components: SpellComponent[]): {
   let propulsionWithoutContainer = false;
   let allElements = new Set<ElementType>();
   const effectTypes = new Set<string>();
+  const perSpellBreakdown: SpellBreakdown[] = [];
 
   // Process each top-level component (container or standalone)
   components.forEach((comp) => {
@@ -251,6 +263,20 @@ export function calculateSpellPower(components: SpellComponent[]): {
     
     containerResult.elements.forEach(e => allElements.add(e));
     if (containerResult.effectType) effectTypes.add(containerResult.effectType);
+    
+    // Add to per-spell breakdown
+    if (comp.type === "container") {
+      const spellTarget: "self" | "opponent" = containerResult.hasPropulsion ? "opponent" : "self";
+      perSpellBreakdown.push({
+        containerName: comp.name,
+        damage: containerResult.damage,
+        shieldPower: containerResult.shield,
+        healingPower: containerResult.healing,
+        manaCost: containerResult.manaCost,
+        target: spellTarget,
+        effectType: containerResult.effectType,
+      });
+    }
   });
 
   function processContainer(comp: SpellComponent): {
@@ -271,6 +297,15 @@ export function calculateSpellPower(components: SpellComponent[]): {
     const elements = new Set<ElementType>([comp.element]);
     const childMaterials: string[] = [];
 
+    // Recursive function to check for propulsion in descendants
+    function hasDescendantPropulsion(component: SpellComponent): boolean {
+      if (component.role === "propulsion") return true;
+      if (component.children) {
+        return component.children.some(child => hasDescendantPropulsion(child));
+      }
+      return false;
+    }
+    
     // Process children
     const childElements = new Set<ElementType>();
     if (comp.children) {
@@ -282,7 +317,8 @@ export function calculateSpellPower(components: SpellComponent[]): {
         childElements.add(child.element);
         childMaterials.push(child.baseId || child.id); // Use baseId for pattern matching
         
-        if (child.role === "propulsion" && comp.role === "container") {
+        // Check for propulsion in this child or any of its descendants
+        if (comp.role === "container" && hasDescendantPropulsion(child)) {
           hasPropulsion = true;
         }
       });
@@ -351,6 +387,14 @@ export function calculateSpellPower(components: SpellComponent[]): {
   if (propulsionWithoutContainer) {
     validationError = "Propulsion components can only be applied to containers";
   }
+  
+  // Check for empty containers
+  const emptyContainers = components.filter(c => 
+    c.type === "container" && (!c.children || c.children.length === 0)
+  );
+  if (emptyContainers.length > 0) {
+    validationError = "Containers must have at least one component inside to form a spell";
+  }
 
   // Determine creative effect names and bonuses
   const elementsArray = Array.from(allElements);
@@ -366,6 +410,7 @@ export function calculateSpellPower(components: SpellComponent[]): {
     hasValidPropulsion: hasPropulsionInsideContainer,
     validationError,
     bonus,
+    perSpellBreakdown,
   };
 }
 
