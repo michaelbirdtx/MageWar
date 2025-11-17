@@ -5,6 +5,7 @@ import SpellBuilder from "@/components/SpellBuilder";
 import BattleArena from "@/components/BattleArena";
 import TutorialDialog from "@/components/TutorialDialog";
 import CharacterCreator from "@/components/CharacterCreator";
+import ResultsModal from "@/components/ResultsModal";
 import { Button } from "@/components/ui/button";
 import { HelpCircle, Moon, Sun, RotateCcw } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
@@ -24,7 +25,6 @@ export default function GamePage() {
   const [showTutorial, setShowTutorial] = useState(false);
   const [isDark, setIsDark] = useState(false);
   const [spellComponents, setSpellComponents] = useState<SpellComponent[]>([]);
-  const [castingSpell, setCastingSpell] = useState<any>(null);
   const [sessionId, setSessionId] = useState<string | null>(null);
   const [gameState, setGameState] = useState<GameState | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -34,6 +34,11 @@ export default function GamePage() {
   const [showCharacterCreator, setShowCharacterCreator] = useState(true);
   const [playerSpellLocked, setPlayerSpellLocked] = useState(false);
   const [aiSpellLocked, setAiSpellLocked] = useState(false);
+  const [showResultsModal, setShowResultsModal] = useState(false);
+  const [roundResults, setRoundResults] = useState<{
+    playerResult: { effect: string; damage: number } | null;
+    aiResult: { effect: string; damage: number } | null;
+  } | null>(null);
   const { toast } = useToast();
   
   useEffect(() => {
@@ -94,8 +99,15 @@ export default function GamePage() {
       
       // Show locked state for a moment
       setTimeout(() => {
-        // Show simultaneous reveal animation with both spells
-        setCastingSpell({
+        // Clear locked state
+        setPlayerSpellLocked(false);
+        setAiSpellLocked(false);
+        
+        // Update game state immediately for victory/defeat/tie detection
+        setGameState(response.gameState);
+        
+        // Store results and show modal
+        setRoundResults({
           playerResult: {
             effect: response.playerSpellResult.effect,
             damage: response.playerSpellResult.damage,
@@ -105,17 +117,7 @@ export default function GamePage() {
             damage: response.aiSpellResult.damage,
           } : null,
         });
-        
-        // Clear locked state and show results
-        setPlayerSpellLocked(false);
-        setAiSpellLocked(false);
-        
-        // Update game state and clear results after animation
-        setTimeout(() => {
-          setGameState(response.gameState);
-          setCastingSpell(null);
-          setSpellComponents([]);
-        }, 2500);
+        setShowResultsModal(true);
       }, 800);
     } catch (error: any) {
       toast({
@@ -123,7 +125,6 @@ export default function GamePage() {
         description: error.message || "Failed to cast spell",
         variant: "destructive",
       });
-      setCastingSpell(null);
       setPlayerSpellLocked(false);
       setAiSpellLocked(false);
     } finally {
@@ -131,43 +132,11 @@ export default function GamePage() {
     }
   };
   
-  const handleAITurn = async () => {
-    if (!sessionId) return;
-    
-    try {
-      const response = await executeAITurn(sessionId);
-      
-      if (response.aiPassed) {
-        setGameState(response.gameState);
-        toast({
-          title: "AI Passed",
-          description: "The opponent doesn't have enough mana to cast a spell",
-        });
-        return;
-      }
-      
-      if (response.aiSpell) {
-        // Show AI spell animation
-        setCastingSpell({
-          effect: response.aiSpell.effect,
-          damage: response.aiSpell.damage,
-          caster: "opponent",
-          target: response.aiSpell.target,
-        });
-        
-        setTimeout(() => {
-          setGameState(response.gameState);
-          setCastingSpell(null);
-        }, 2000);
-      }
-    } catch (error: any) {
-      toast({
-        title: "Error",
-        description: error.message || "Failed to execute AI turn",
-        variant: "destructive",
-      });
-      setCastingSpell(null);
-    }
+  const handleNextRound = () => {
+    // Clear spell builder and close modal (game state already updated)
+    setSpellComponents([]);
+    setShowResultsModal(false);
+    setRoundResults(null);
   };
   
   const handleNewGame = async () => {
@@ -264,10 +233,6 @@ export default function GamePage() {
               currentTurn={gameState.currentTurn}
               playerSpellLocked={playerSpellLocked}
               aiSpellLocked={aiSpellLocked}
-              simultaneousResults={castingSpell?.playerResult ? {
-                player: castingSpell.playerResult,
-                ai: castingSpell.aiResult,
-              } : null}
             />
           </div>
         </div>
@@ -275,6 +240,18 @@ export default function GamePage() {
       
       {/* Tutorial */}
       <TutorialDialog open={showTutorial} onClose={() => setShowTutorial(false)} />
+      
+      {/* Results Modal */}
+      {roundResults && gameState && (
+        <ResultsModal
+          open={showResultsModal}
+          onNextRound={handleNextRound}
+          playerName={gameState.player.name}
+          opponentName={gameState.opponent.name}
+          playerResult={roundResults.playerResult}
+          aiResult={roundResults.aiResult}
+        />
+      )}
       
       {/* Victory Dialog */}
       <AlertDialog open={showVictoryDialog} onOpenChange={setShowVictoryDialog}>
