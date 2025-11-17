@@ -31,6 +31,8 @@ export default function GamePage() {
   const [showVictoryDialog, setShowVictoryDialog] = useState(false);
   const [showDefeatDialog, setShowDefeatDialog] = useState(false);
   const [showCharacterCreator, setShowCharacterCreator] = useState(true);
+  const [playerSpellLocked, setPlayerSpellLocked] = useState(false);
+  const [aiSpellLocked, setAiSpellLocked] = useState(false);
   const { toast } = useToast();
   
   useEffect(() => {
@@ -77,26 +79,41 @@ export default function GamePage() {
     
     try {
       setIsLoading(true);
+      
+      // Lock player spell first (show green background)
+      setPlayerSpellLocked(true);
+      
+      // Make API call to cast spell
       const response = await castSpell(sessionId, spellComponents);
       
-      // Show simultaneous reveal animation with both spells
-      setCastingSpell({
-        playerResult: {
-          effect: response.playerSpellResult.effect,
-          damage: response.playerSpellResult.damage,
-        },
-        aiResult: response.aiSpellResult ? {
-          effect: response.aiSpellResult.effect,
-          damage: response.aiSpellResult.damage,
-        } : null,
-      });
+      // Lock AI spell too (both cards turn green)
+      setAiSpellLocked(true);
       
-      // Update game state after animation
+      // Show locked state for a moment
       setTimeout(() => {
-        setGameState(response.gameState);
-        setCastingSpell(null);
-        setSpellComponents([]);
-      }, 2500);
+        // Show simultaneous reveal animation with both spells
+        setCastingSpell({
+          playerResult: {
+            effect: response.playerSpellResult.effect,
+            damage: response.playerSpellResult.damage,
+          },
+          aiResult: response.aiSpellResult ? {
+            effect: response.aiSpellResult.effect,
+            damage: response.aiSpellResult.damage,
+          } : null,
+        });
+        
+        // Clear locked state and show results
+        setPlayerSpellLocked(false);
+        setAiSpellLocked(false);
+        
+        // Update game state and clear results after animation
+        setTimeout(() => {
+          setGameState(response.gameState);
+          setCastingSpell(null);
+          setSpellComponents([]);
+        }, 2500);
+      }, 800);
     } catch (error: any) {
       toast({
         title: "Error",
@@ -104,6 +121,8 @@ export default function GamePage() {
         variant: "destructive",
       });
       setCastingSpell(null);
+      setPlayerSpellLocked(false);
+      setAiSpellLocked(false);
     } finally {
       setIsLoading(false);
     }
@@ -239,6 +258,8 @@ export default function GamePage() {
               player={gameState.player}
               opponent={gameState.opponent}
               currentTurn={gameState.currentTurn}
+              playerSpellLocked={playerSpellLocked}
+              aiSpellLocked={aiSpellLocked}
               simultaneousResults={castingSpell?.playerResult ? {
                 player: castingSpell.playerResult,
                 ai: castingSpell.aiResult,

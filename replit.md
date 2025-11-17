@@ -47,14 +47,19 @@ Preferred communication style: Simple, everyday language.
 - RESTful endpoints for game state management:
   - `POST /api/game/new` - Initialize new game session
   - `GET /api/game/:sessionId` - Retrieve current game state
-  - `POST /api/game/:sessionId/cast` - Cast player spell
-  - `POST /api/game/:sessionId/ai-turn` - Execute AI opponent turn
+  - `POST /api/game/:sessionId/cast` - Cast player spell with simultaneous AI response
+  - `POST /api/game/:sessionId/ai-turn` - (Legacy, no longer used)
 
 **Game Logic**
 - Server-authoritative game state (health, mana, turn order)
 - Spell validation and damage calculation on backend
 - AI opponent with strategic spell-building algorithms
-- Turn-based combat flow with victory/defeat detection
+- **Simultaneous spell reveal system** (implemented November 17, 2025):
+  - Player locks in spell → AI immediately generates counter-spell
+  - Both spells calculated and applied simultaneously
+  - Mage cards display green backgrounds during lock-in phase
+  - Split results display shows both spell effects side-by-side
+  - Mana regeneration occurs after both spells resolve
 
 ### Data Storage
 
