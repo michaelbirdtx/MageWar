@@ -30,10 +30,10 @@ const availableComponents: SpellComponent[] = [
 ];
 
 // Individual container templates for building multi-spell combinations
+// Names are generated dynamically by determineEffectNameBackend() based on elements
 const damageSpells = [
   // Fire-based spells (favored by Pyromancers)
   {
-    name: "Magma Bomb",
     manaCost: 38, // Air Sphere 10 + Magma 12 + Sulfur 8 + Gust 8 = 38
     elements: ["air", "fire", "earth"],
     components: [{ ...availableComponents.find(c => c.id === "air-sphere")!, children: [
@@ -43,7 +43,6 @@ const damageSpells = [
     ]}],
   },
   {
-    name: "Inferno Strike",
     manaCost: 40, // Air Sphere 10 + Flame 10 + Ember 6 + Stone 6 + Gust 8 = 40
     elements: ["air", "fire", "earth"],
     components: [{ ...availableComponents.find(c => c.id === "air-sphere")!, children: [
@@ -54,7 +53,6 @@ const damageSpells = [
     ]}],
   },
   {
-    name: "Volcanic Eruption",
     manaCost: 42, // Vortex 12 + Magma 12 + Flame 10 + Gust 8 = 42
     elements: ["air", "fire"],
     components: [{ ...availableComponents.find(c => c.id === "vortex")!, children: [
@@ -65,7 +63,6 @@ const damageSpells = [
   },
   // Water-based spells (favored by Aquamancers) - now with multipliers for high damage
   {
-    name: "Frozen Boulder",
     manaCost: 46, // Vortex 12 + Boulder 10 + Frost 9 + Crystal 7 + Gust 8 = 46
     elements: ["air", "water", "earth"],
     components: [{ ...availableComponents.find(c => c.id === "vortex")!, children: [
@@ -76,7 +73,6 @@ const damageSpells = [
     ]}],
   },
   {
-    name: "Glacial Hammer",
     manaCost: 43, // Air Sphere 10 + Boulder 10 + Frost 9 + Stone 6 + Gust 8 = 43
     elements: ["air", "water", "earth"],
     components: [{ ...availableComponents.find(c => c.id === "air-sphere")!, children: [
@@ -87,7 +83,6 @@ const damageSpells = [
     ]}],
   },
   {
-    name: "Storm Blast",
     manaCost: 38, // Air Sphere 10 + Storm 11 + Frost 9 + Gust 8 = 38
     elements: ["air", "water"],
     components: [{ ...availableComponents.find(c => c.id === "air-sphere")!, children: [
@@ -98,7 +93,6 @@ const damageSpells = [
   },
   // Generic high-damage spells
   {
-    name: "Boulder Crash",
     manaCost: 34, // Air Sphere 10 + Boulder 10 + Stone 6 + Gust 8 = 34
     elements: ["air", "earth"],
     components: [{ ...availableComponents.find(c => c.id === "air-sphere")!, children: [
@@ -108,7 +102,6 @@ const damageSpells = [
     ]}],
   },
   {
-    name: "Thunder Strike",
     manaCost: 38, // Air Sphere 10 + Lightning 9 + Storm 11 + Gust 8 = 38
     elements: ["air"],
     components: [{ ...availableComponents.find(c => c.id === "air-sphere")!, children: [
@@ -121,21 +114,18 @@ const damageSpells = [
 
 const shieldSpells = [
   {
-    name: "Ice Shield",
     manaCost: 20, // Vortex 12 + Ice 8
     components: [{ ...availableComponents.find(c => c.id === "vortex")!, children: [
       { ...availableComponents.find(c => c.id === "ice")! },
     ]}],
   },
   {
-    name: "Ember Shield",
     manaCost: 18, // Vortex 12 + Ember 6
     components: [{ ...availableComponents.find(c => c.id === "vortex")!, children: [
       { ...availableComponents.find(c => c.id === "ember")! },
     ]}],
   },
   {
-    name: "Sand Shield",
     manaCost: 16, // Vortex 12 + Sand 4
     components: [{ ...availableComponents.find(c => c.id === "vortex")!, children: [
       { ...availableComponents.find(c => c.id === "sand")! },
@@ -145,7 +135,6 @@ const shieldSpells = [
 
 const healingSpells = [
   {
-    name: "Restoration",
     manaCost: 39, // Vortex 12 + Mist 5 + Crystal 7 + Ember 6 + Lightning 9
     components: [{ ...availableComponents.find(c => c.id === "vortex")!, children: [
       { ...availableComponents.find(c => c.id === "mist")! },
@@ -155,7 +144,6 @@ const healingSpells = [
     ]}],
   },
   {
-    name: "Life Force",
     manaCost: 41, // Vortex 12 + Mist 5 + Crystal 7 + Ember 6 + Storm 11
     components: [{ ...availableComponents.find(c => c.id === "vortex")!, children: [
       { ...availableComponents.find(c => c.id === "mist")! },
@@ -244,10 +232,10 @@ export function generateAISpell(
 }
 
 function selectBestAffordableSpell(
-  spellList: Array<{ name: string; manaCost: number; components: SpellComponent[]; elements?: string[] }>,
+  spellList: Array<{ manaCost: number; components: SpellComponent[]; elements?: string[] }>,
   maxMana: number,
   specialization?: "pyromancer" | "aquamancer"
-): { name: string; manaCost: number; components: SpellComponent[]; elements?: string[] } | null {
+): { manaCost: number; components: SpellComponent[]; elements?: string[] } | null {
   // Filter affordable spells
   const affordable = spellList.filter(s => s.manaCost <= maxMana);
   if (affordable.length === 0) return null;
