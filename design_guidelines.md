@@ -45,7 +45,8 @@
 - **Spacing**: gap-4 between cards, p-4 internal padding
 
 ### 2. Spell Builder (Center Panel - Primary Focus)
-- **Spell Container**: Large drop zone (min-h-80), dashed border-2 when empty, solid when populated
+- **Spell Container**: Large drop zone (min-h-80, max-h-[calc(100vh-280px)]) with overflow-y-auto for scrolling, dashed border-2 when empty, solid when populated
+- **Height**: Uses viewport-based max height to maximize available vertical space
 - **Nested Containers**: Smaller drop zones (min-h-24) within parent containers, indent with ml-6 for hierarchy
 - **Component Stack**: Vertical list showing build order with connector lines indicating relationships
 - **Action Bar**: Below spell container with "Cast Spell", "Clear", "Save to Spellbook" buttons (space-x-4)
