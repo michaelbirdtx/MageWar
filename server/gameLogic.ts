@@ -261,6 +261,23 @@ export function applyCombatDamage(state: GameState, damage: number, target: "pla
   return newState;
 }
 
+export function applySimultaneousDamage(state: GameState, damageToPlayer: number, damageToOpponent: number): GameState {
+  const newState = { ...state };
+  
+  // Apply both damages simultaneously in a single operation
+  newState.player = {
+    ...newState.player,
+    health: Math.max(0, newState.player.health - damageToPlayer),
+  };
+  
+  newState.opponent = {
+    ...newState.opponent,
+    health: Math.max(0, newState.opponent.health - damageToOpponent),
+  };
+  
+  return newState;
+}
+
 export function checkGameEnd(state: GameState): GameState {
   const newState = { ...state };
   

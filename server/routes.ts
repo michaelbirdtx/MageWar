@@ -6,6 +6,7 @@ import {
   calculateSpellStats, 
   validateSpell, 
   applyCombatDamage,
+  applySimultaneousDamage,
   consumeMana,
   regenerateMana,
   switchTurn,
@@ -164,14 +165,34 @@ export async function registerRoutes(app: Express): Promise<Server> {
         };
       }
       
-      // Apply both spells simultaneously
+      // Consume mana for both spells
       gameState.player = consumeMana(gameState.player, playerStats.manaCost);
-      gameState = applyCombatDamage(gameState, playerStats.damage, playerStats.target === "opponent" ? "opponent" : "player");
-      
       if (aiComponents.length > 0 && aiStats) {
         gameState.opponent = consumeMana(gameState.opponent, aiStats.manaCost);
-        gameState = applyCombatDamage(gameState, aiStats.damage, aiStats.target === "opponent" ? "player" : "opponent");
       }
+      
+      // Accumulate damage to be applied simultaneously
+      let damageToPlayer = 0;
+      let damageToOpponent = 0;
+      
+      // Add player spell damage
+      if (playerStats.target === "opponent") {
+        damageToOpponent += playerStats.damage;
+      } else {
+        damageToPlayer += playerStats.damage;
+      }
+      
+      // Add AI spell damage
+      if (aiComponents.length > 0 && aiStats) {
+        if (aiStats.target === "opponent") {
+          damageToPlayer += aiStats.damage;
+        } else {
+          damageToOpponent += aiStats.damage;
+        }
+      }
+      
+      // Apply both damages simultaneously in a single operation
+      gameState = applySimultaneousDamage(gameState, damageToPlayer, damageToOpponent);
       
       // Check for victory/defeat/tie after all damage is applied
       gameState = checkGameEnd(gameState);
