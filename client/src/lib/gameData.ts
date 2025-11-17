@@ -281,16 +281,19 @@ export function calculateSpellPower(components: SpellComponent[]): {
       containerMaterials
     );
     
-    totalBonus += bonus;
-    
-    // Categorize names by effect type
+    // Only add to spell names if this container has valid propulsion or is a shield/healing spell
+    // Non-propulsion damage containers don't count toward spell names
     if (containerResult.effectType === "damage" && containerResult.hasPropulsion) {
       damageSpellNames.push(effectName);
+      totalBonus += bonus;
     } else if (containerResult.effectType === "shield") {
       shieldSpellNames.push(effectName);
+      totalBonus += bonus;
     } else if (containerResult.effectType === "healing") {
       healingSpellNames.push(effectName);
+      totalBonus += bonus;
     }
+    // If effectType is "damage" but no propulsion, this container is invalid and contributes nothing
     
     // Add to per-spell breakdown
     if (comp.type === "container") {
@@ -397,8 +400,12 @@ export function calculateSpellPower(components: SpellComponent[]): {
       containerDamage = Math.min(Math.floor(baseDamage * cappedMultiplier), 100);
     }
 
+    // Damage only counts if the container has propulsion (can target opponent)
+    // Without propulsion, damage containers are invalid and contribute nothing
+    const validDamage = (effectType === "damage" && hasPropulsion) ? containerDamage : 0;
+
     return {
-      damage: containerDamage,
+      damage: validDamage,
       shield,
       healing,
       manaCost,

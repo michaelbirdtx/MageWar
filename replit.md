@@ -45,57 +45,69 @@ Preferred communication style: Simple, everyday language.
 
 ## Spell Naming System
 
-### Dynamic Element-Based Naming
-All spells (both player and AI) use a unified naming system based on elemental composition, generated dynamically by `determineEffectNameBackend()`. This ensures consistency and fairness across all gameplay.
+### Material-Based Priority Naming
+All spells use a unified naming system with priority-based cascade: **Specific Material Combos → Element Combos → Generic Fallback**. Names are generated dynamically per-container by `determineEffectNameBackend()` (backend) and `determineEffectName()` (frontend). Materials from different containers do NOT combine into combo names.
 
-**Single-Element Damage Spells:**
-- Fire + Propulsion → "Fire Blast"
-- Water + Propulsion → "Frost Bolt"
-- Earth + Propulsion → "Stone Strike"
-- Air + Propulsion → "Wind Blast"
+**Naming Priority Levels:**
+1. **Specific Material Combinations** (Highest Priority)
+   - 4+ materials: e.g., Magma + Sulfur + Crystal + Stone → "Crystal Inferno" (+6 bonus)
+   - 3 materials: e.g., Magma + Sulfur + Crystal → "Volcanic Crystal" (+5 bonus)
+   - 2 materials: e.g., Magma + Sulfur → "Sulfuric Blast" (+3 bonus)
+   - Single high-value: e.g., Magma → "Magma Blast" (+2 bonus)
 
-**Multi-Element Damage Spells:**
-- Fire + Earth → "Fireball"
-- Fire + Water → "Steam Blast" (+3 bonus)
-- Earth + Water → "Mud Torrent" (+2 bonus)
-- Water + Air → "Blizzard" (+3 bonus)
-- Fire + Earth + Water → "Lava Burst" (+5 bonus)
-- Fire + Water + Air → "Tempest Storm" (+5 bonus)
+2. **Element-Based Combinations** (Medium Priority)
+   - Multi-element: e.g., Fire + Water → "Steam Blast" (+3 bonus)
+   - Single element: e.g., Fire → "Fire Blast" (no bonus)
 
-**Shield Spells:**
-- Water-based → "Ice Barrier"
-- Earth-based → "Stone Wall"
-- Fire-based → "Flame Guard"
-- Air-based → "Wind Ward"
-- Fire + Water → "Steam Shield"
+3. **Generic Fallback** (Lowest Priority)
+   - "Unknown Spell" if no patterns match
 
-**Healing Spells:**
-- Water-based → "Healing Waters"
-- Earth-based → "Life Essence"
-- Air-based → "Vital Breeze"
+**Example Material Combos (Damage Spells):**
+- **4-Material:** Boulder + Frost + Crystal + Stone → "Diamond Avalanche" (+6)
+- **3-Material:** Magma + Sulfur + Crystal → "Volcanic Crystal" (+5), Boulder + Frost + Crystal → "Crystal Glacier" (+5), Magma + Sulfur + Stone → "Magma Bomb" (+4), Boulder + Frost + Ice → "Frozen Avalanche" (+4)
+- **2-Material:** Frost + Ice → "Glacial Lance" (+3), Boulder + Stone → "Boulder Crash" (+3), Lightning + Storm → "Thunderstorm" (+3), Magma + Sulfur → "Sulfuric Blast" (+3)
+- **Cross-Element 2-Mat:** Magma + Frost → "Steam Eruption" (+4), Boulder + Ember → "Molten Rock" (+4), Lightning + Frost → "Frozen Lightning" (+4)
+- **Single-Material:** Lightning → "Lightning Strike" (+2), Boulder → "Boulder Throw" (+2), Storm → "Storm Surge" (+2), Magma → "Magma Blast" (+2)
+
+**Shield Spell Materials:**
+- Ice + Crystal → "Crystal Barrier" (+2 bonus)
+- Ember + Stone → "Molten Wall" (+2 bonus)
+- Sand + Crystal → "Crystal Shield" (+2 bonus)
+- Ice alone → "Ice Barrier", Ember alone → "Flame Guard", Sand alone → "Sand Wall"
+
+**Healing Spell Materials:**
+- Mist + Crystal → "Crystal Renewal" (+2 bonus)
+- Fallback: Water → "Healing Waters", Earth → "Life Essence", Air → "Vital Breeze"
+
+**Per-Container Scoping (Critical Design Rule):**
+Materials are evaluated **within each container independently**. Multi-container builds combine names with " + " separator but do NOT cross-pollinate materials. Example:
+- Container 1: Air Sphere [Gust, Magma, Sulfur] → "Sulfuric Blast" (+3)
+- Container 2: Vortex [Ice] → "Ice Barrier"
+- **Final Name:** "Sulfuric Blast + Ice Barrier" (NOT "Volcanic Crystal", which requires all 3 materials in ONE container)
 
 ### AI Spell Templates (Component Recipes)
-AI uses predefined component combinations, but names are generated dynamically like player spells:
+AI uses predefined component combinations. Names are generated dynamically per-container like player spells:
 
 **Fire-Focused (Pyromancer):**
-- 38 mana: Magma (6) × Sulfur (4×) = 24 damage → "Fireball" (~29 with specialization)
-- 40 mana: Flame (3) + Ember (2) × Stone (3×) = 15 damage → "Fireball" (~18 with specialization)
-- 42 mana: Magma (6) + Flame (3) = 9 damage → "Fire Blast" (~11 with specialization)
+- 38 mana: Air Sphere [Gust, Magma, Sulfur] → "Sulfuric Blast" (+3 bonus, ~26 dmg with spec)
+- 40 mana: Air Sphere [Gust, Flame, Ember, Stone] → "Scorching Boulder" (+4 bonus if all 3 in container)
+- 42 mana: Air Sphere [Gust, Magma, Flame] → "Volcanic Eruption" (+3 bonus, ~11 dmg with spec)
 
 **Water-Focused (Aquamancer):**
-- 46 mana: Boulder (5) + Frost (2) × Crystal (2×) = 14 damage → "Blizzard" (+3 bonus, ~17 with specialization)
-- 43 mana: Boulder (5) + Frost (2) × Stone (3×) = 21 damage → "Blizzard" (+3 bonus, ~25 with specialization)
-- 38 mana: Storm (5) + Frost (2) = 7 damage → "Blizzard" (+3 bonus, ~8 with specialization)
+- 46 mana: Air Sphere [Gust, Boulder, Frost, Crystal] → "Crystal Glacier" (+5 bonus, ~17 dmg with spec)
+- 43 mana: Air Sphere [Gust, Boulder, Frost, Stone] → "Glacial Hammer" (+4 bonus, ~25 dmg with spec)
+- 38 mana: Air Sphere [Gust, Storm, Frost] → "Frozen Storm" (+3 bonus, ~8 dmg with spec)
 
 **Generic:**
-- 34 mana: Boulder (5) × Stone (3×) = 15 damage → "Stone Strike"
-- 38 mana: Lightning (4) + Storm (5) = 9 damage → "Wind Blast"
+- 34 mana: Air Sphere [Gust, Boulder, Stone] → "Boulder Crash" (+3 bonus)
+- 38 mana: Air Sphere [Gust, Lightning, Storm] → "Thunderstorm" (+3 bonus)
 
 ### Specialization & Strategy
 - AI filters spells by element composition: fire for Pyromancers, water for Aquamancers
 - Priority: Damage → Heal (if health < 60%) → Second damage (if health > 80%) → Shield
 - Specialization bonuses: +20% damage, -20% mana cost on matching elements
 - AI can cast 2 spells per turn when healthy, leveraging the multi-spell system
+- Material combo bonuses stack with specialization bonuses for powerful synergies
 
 ## External Dependencies
 
