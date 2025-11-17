@@ -34,6 +34,7 @@ export default function GamePage() {
   const [showCharacterCreator, setShowCharacterCreator] = useState(true);
   const [playerSpellLocked, setPlayerSpellLocked] = useState(false);
   const [aiSpellLocked, setAiSpellLocked] = useState(false);
+  const [aiThinkingLock, setAiThinkingLock] = useState(false);
   const [showResultsModal, setShowResultsModal] = useState(false);
   const [roundResults, setRoundResults] = useState<{
     playerResult: { effect: string; damage: number } | null;
@@ -60,6 +61,21 @@ export default function GamePage() {
     }
   }, [gameState?.gamePhase]);
   
+  // AI "thinking" animation - randomly lock AI spell after round starts
+  useEffect(() => {
+    if (gameState?.gamePhase === "building" && !showResultsModal) {
+      // Random delay between 1-3 seconds
+      const delay = Math.random() * 2000 + 1000;
+      const timer = setTimeout(() => {
+        setAiThinkingLock(true);
+      }, delay);
+      
+      return () => clearTimeout(timer);
+    } else {
+      setAiThinkingLock(false);
+    }
+  }, [gameState?.gamePhase, showResultsModal]);
+  
   const initializeGame = async (characterData: CharacterData) => {
     try {
       setIsLoading(true);
@@ -67,6 +83,7 @@ export default function GamePage() {
       setSessionId(newSessionId);
       setGameState(newGameState);
       setShowCharacterCreator(false);
+      setAiThinkingLock(false);
     } catch (error) {
       toast({
         title: "Error",
@@ -149,6 +166,7 @@ export default function GamePage() {
     setGameState(null);
     setSessionId(null);
     setShowCharacterCreator(true);
+    setAiThinkingLock(false);
   };
   
   if (showCharacterCreator || !gameState) {
@@ -232,7 +250,7 @@ export default function GamePage() {
               opponent={gameState.opponent}
               currentTurn={gameState.currentTurn}
               playerSpellLocked={playerSpellLocked}
-              aiSpellLocked={aiSpellLocked}
+              aiSpellLocked={aiSpellLocked || aiThinkingLock}
             />
           </div>
         </div>
