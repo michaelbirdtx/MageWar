@@ -280,7 +280,7 @@ export function calculateSpellPower(components: SpellComponent[]): {
         manaCost += child.manaCost;
         elements.add(child.element);
         childElements.add(child.element);
-        childMaterials.push(child.id);
+        childMaterials.push(child.baseId || child.id); // Use baseId for pattern matching
         
         if (child.role === "propulsion" && comp.role === "container") {
           hasPropulsion = true;
@@ -289,19 +289,17 @@ export function calculateSpellPower(components: SpellComponent[]): {
     }
 
     // Detect patterns (healing takes priority over shield)
-    const isVortex = comp.id === "vortex";
-    
-    // Detect healing pattern: Vortex + all 4 elements via children (must have Mist, Crystal, Ember, + air material)
+    const componentId = comp.baseId || comp.id;
+    const isVortex = componentId === "vortex";
     const hasMist = childMaterials.includes("mist");
     const hasCrystal = childMaterials.includes("crystal");
     const hasEmberForHealing = childMaterials.includes("ember");
-    const childrenHaveAllFourElements = childElements.has("fire") && childElements.has("water") && childElements.has("earth") && childElements.has("air");
-    const isHealingSpell = isVortex && hasMist && hasCrystal && hasEmberForHealing && childrenHaveAllFourElements;
-    
-    // Detect shield pattern: Vortex + (Ice OR Ember OR Sand), but NOT healing
     const hasIce = childMaterials.includes("ice");
     const hasEmber = childMaterials.includes("ember");
     const hasSand = childMaterials.includes("sand");
+    
+    const childrenHaveAllFourElements = childElements.has("fire") && childElements.has("water") && childElements.has("earth") && childElements.has("air");
+    const isHealingSpell = isVortex && hasMist && hasCrystal && hasEmberForHealing && childrenHaveAllFourElements;
     const isShieldSpell = isVortex && (hasIce || hasEmber || hasSand) && !isHealingSpell;
 
     // Determine effect type and calculate power
@@ -343,18 +341,10 @@ export function calculateSpellPower(components: SpellComponent[]): {
     };
   }
 
-  // Determine target based on primary effect type
-  let target: "self" | "opponent" = "self";
-  if (totalDamage > 0 && totalShield === 0 && totalHealing === 0) {
-    // Pure damage spell targets opponent
-    target = "opponent";
-  } else if (totalDamage > 0 && (totalShield > 0 || totalHealing > 0)) {
-    // Mixed spell with damage targets opponent
-    target = "opponent";
-  } else {
-    // Pure shield or healing spell targets self
-    target = "self";
-  }
+  // Universal targeting rule: Gust inside container = opponent targeting
+  // This applies to ALL spell types (damage, shield, healing)
+  // Allows emergent gameplay: healing/shielding opponent is allowed but unusual
+  const target: "self" | "opponent" = hasPropulsionInsideContainer ? "opponent" : "self";
 
   // Validation
   let validationError: string | undefined;

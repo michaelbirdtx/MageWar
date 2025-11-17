@@ -251,6 +251,7 @@ function deepCloneComponents(components: SpellComponent[]): SpellComponent[] {
 function assignUniqueIds(components: SpellComponent[]): SpellComponent[] {
   return components.map(comp => ({
     ...comp,
+    baseId: comp.baseId || comp.id, // Preserve baseId or set it from original id
     id: `${comp.id}-${randomUUID()}`,
     children: comp.children ? assignUniqueIds(comp.children) : undefined,
   }));

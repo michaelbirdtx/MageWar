@@ -147,6 +147,8 @@ export function calculateSpellStats(
     }
 
     let manaCost = componentCost;
+    const childMaterials: string[] = [];
+    const childElements = new Set<string>();
 
     // Process children
     if (comp.children) {
@@ -165,6 +167,8 @@ export function calculateSpellStats(
         manaCost += childCost;
         
         elements.add(child.element);
+        childElements.add(child.element);
+        childMaterials.push(child.baseId || child.id); // Use baseId for pattern matching
         
         if (child.role === "propulsion" && comp.role === "container") {
           hasPropulsion = true;
@@ -173,6 +177,35 @@ export function calculateSpellStats(
         if (child.effectType === "shield") effectType = "shield";
         if (child.effectType === "healing") effectType = "healing";
       });
+    }
+    
+    // Detect patterns (healing takes priority over shield)
+    const componentId = comp.baseId || comp.id;
+    const isVortex = componentId === "vortex";
+    const hasMist = childMaterials.includes("mist");
+    const hasCrystal = childMaterials.includes("crystal");
+    const hasEmber = childMaterials.includes("ember");
+    const hasIce = childMaterials.includes("ice");
+    const hasSand = childMaterials.includes("sand");
+    const childrenHaveAllFourElements = childElements.has("fire") && childElements.has("water") && childElements.has("earth") && childElements.has("air");
+    
+    const isHealingSpell = isVortex && hasMist && hasCrystal && hasEmber && childrenHaveAllFourElements;
+    const isShieldSpell = isVortex && (hasIce || hasEmber || hasSand) && !isHealingSpell;
+    
+    if (isHealingSpell) {
+      effectType = "healing";
+      // Healing power = sum of child mana costs
+      healing = childMaterials.reduce((sum, id) => {
+        const child = comp.children?.find(c => (c.baseId || c.id) === id);
+        return sum + (child?.manaCost || 0);
+      }, 0);
+    } else if (isShieldSpell) {
+      effectType = "shield";
+      // Shield power = sum of child mana costs
+      shield = childMaterials.reduce((sum, id) => {
+        const child = comp.children?.find(c => (c.baseId || c.id) === id);
+        return sum + (child?.manaCost || 0);
+      }, 0);
     }
 
     // Calculate damage for this container

@@ -54,7 +54,9 @@ export default function SpellBuilder({
     if (!componentData) return;
     
     const newComponent: SpellComponent = JSON.parse(componentData);
-    newComponent.id = `${newComponent.id}-${Date.now()}`;
+    const originalId = newComponent.id;
+    newComponent.id = `${originalId}-${Date.now()}`;
+    newComponent.baseId = originalId; // Preserve original ID for pattern matching
     
     if (parentId) {
       const updatedComponents = components.map(comp => {

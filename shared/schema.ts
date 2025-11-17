@@ -24,6 +24,7 @@ export type EffectType = "damage" | "shield" | "healing";
 
 export interface SpellComponent {
   id: string;
+  baseId?: string; // Original component ID before cloning (for pattern matching)
   name: string;
   element: ElementType;
   type: "container" | "material" | "action";

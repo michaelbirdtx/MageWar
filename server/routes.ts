@@ -184,40 +184,83 @@ export async function registerRoutes(app: Express): Promise<Server> {
         gameState.opponent = consumeMana(gameState.opponent, aiStats.manaCost);
       }
       
-      // Apply combat resolution with shields, damage, and healing
+      // Apply combat with universal targeting - manually apply effects based on target
       if (aiComponents.length > 0 && aiStats) {
-        gameState = applyCombatResolution(
-          gameState,
-          {
-            damage: playerStats.target === "opponent" ? playerStats.damage : 0,
-            shieldPower: playerStats.shieldPower,
-            healingPower: playerStats.healingPower,
-            bonus: playerStats.bonus,
-          },
-          {
-            damage: aiStats.target === "opponent" ? aiStats.damage : 0,
-            shieldPower: aiStats.shieldPower,
-            healingPower: aiStats.healingPower,
-            bonus: aiStats.bonus,
-          }
-        );
+        const playerToOpponent = playerStats.target === "opponent";
+        const aiToOpponent = aiStats.target === "opponent";
+        
+        // Calculate total effects for each mage
+        const playerDamage = playerStats.damage + playerStats.bonus;
+        const aiDamage = aiStats.damage + aiStats.bonus;
+        
+        // Calculate incoming damage and shields for each mage
+        let damageToPlayer = 0;
+        let damageToAI = 0;
+        let shieldOnPlayer = 0;
+        let shieldOnAI = 0;
+        let healingOnPlayer = 0;
+        let healingOnAI = 0;
+        
+        // Route player's spell effects
+        if (playerToOpponent) {
+          damageToAI += playerDamage;
+          shieldOnAI += playerStats.shieldPower;
+          healingOnAI += playerStats.healingPower;
+        } else {
+          damageToPlayer += playerDamage;
+          shieldOnPlayer += playerStats.shieldPower;
+          healingOnPlayer += playerStats.healingPower;
+        }
+        
+        // Route AI's spell effects
+        if (aiToOpponent) {
+          damageToPlayer += aiDamage;
+          shieldOnPlayer += aiStats.shieldPower;
+          healingOnPlayer += aiStats.healingPower;
+        } else {
+          damageToAI += aiDamage;
+          shieldOnAI += aiStats.shieldPower;
+          healingOnAI += aiStats.healingPower;
+        }
+        
+        // Apply shields to reduce damage
+        const finalDamageToPlayer = Math.max(0, damageToPlayer - shieldOnPlayer);
+        const finalDamageToAI = Math.max(0, damageToAI - shieldOnAI);
+        
+        // Apply damage simultaneously
+        gameState = applySimultaneousDamage(gameState, finalDamageToPlayer, finalDamageToAI);
+        
+        // Apply healing
+        gameState.player = {
+          ...gameState.player,
+          health: Math.min(gameState.player.maxHealth, gameState.player.health + healingOnPlayer),
+        };
+        gameState.opponent = {
+          ...gameState.opponent,
+          health: Math.min(gameState.opponent.maxHealth, gameState.opponent.health + healingOnAI),
+        };
       } else {
         // Player only (no AI spell)
-        gameState = applyCombatResolution(
-          gameState,
-          {
-            damage: playerStats.target === "opponent" ? playerStats.damage : 0,
-            shieldPower: playerStats.shieldPower,
-            healingPower: playerStats.healingPower,
-            bonus: playerStats.bonus,
-          },
-          {
-            damage: 0,
-            shieldPower: 0,
-            healingPower: 0,
-            bonus: 0,
-          }
-        );
+        const playerToOpponent = playerStats.target === "opponent";
+        const playerDamage = playerStats.damage + playerStats.bonus;
+        
+        if (playerToOpponent) {
+          // Damage opponent
+          const finalDamage = Math.max(0, playerDamage - playerStats.shieldPower);
+          gameState = applySimultaneousDamage(gameState, 0, finalDamage);
+          gameState.opponent = {
+            ...gameState.opponent,
+            health: Math.min(gameState.opponent.maxHealth, gameState.opponent.health + playerStats.healingPower),
+          };
+        } else {
+          // Damage self
+          const finalDamage = Math.max(0, playerDamage - playerStats.shieldPower);
+          gameState = applySimultaneousDamage(gameState, finalDamage, 0);
+          gameState.player = {
+            ...gameState.player,
+            health: Math.min(gameState.player.maxHealth, gameState.player.health + playerStats.healingPower),
+          };
+        }
       }
       
       // Check for victory/defeat/tie after all damage is applied
