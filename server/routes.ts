@@ -9,6 +9,7 @@ import {
   consumeMana,
   regenerateMana,
   switchTurn,
+  checkGameEnd,
   CharacterAttributes
 } from "./gameLogic";
 import { generateAISpell, getAIDifficulty } from "./aiLogic";
@@ -172,7 +173,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
         gameState = applyCombatDamage(gameState, aiStats.damage, aiStats.target === "opponent" ? "player" : "opponent");
       }
       
-      gameState.gamePhase = "combat";
+      // Check for victory/defeat/tie after all damage is applied
+      gameState = checkGameEnd(gameState);
+      
+      // If game is still ongoing, set to combat phase
+      if (gameState.gamePhase !== "victory" && gameState.gamePhase !== "defeat" && gameState.gamePhase !== "tie") {
+        gameState.gamePhase = "combat";
+      }
       
       // Regenerate mana for next turn
       gameState.player = regenerateMana(gameState.player);
