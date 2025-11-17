@@ -9,9 +9,10 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip
 interface MageCardProps {
   mage: Mage;
   showTurnIndicator?: boolean;
+  spellLocked?: boolean;
 }
 
-export default function MageCard({ mage, showTurnIndicator }: MageCardProps) {
+export default function MageCard({ mage, showTurnIndicator, spellLocked }: MageCardProps) {
   const healthPercent = (mage.health / mage.maxHealth) * 100;
   const manaPercent = (mage.mana / mage.maxMana) * 100;
   const initials = mage.name.split(" ").map(n => n[0]).join("").toUpperCase();
@@ -27,7 +28,10 @@ export default function MageCard({ mage, showTurnIndicator }: MageCardProps) {
     : "bg-blue-100 dark:bg-blue-950 text-blue-700 dark:text-blue-300 border-blue-300 dark:border-blue-700";
   
   return (
-    <Card className={`p-5 ${showTurnIndicator ? "border-primary border-2" : ""}`} data-testid={`card-mage-${mage.id}`}>
+    <Card 
+      className={`p-5 ${showTurnIndicator ? "border-primary border-2" : ""} ${spellLocked ? "bg-green-500/20 dark:bg-green-900/20 border-green-500 border-2" : ""}`} 
+      data-testid={`card-mage-${mage.id}`}
+    >
       <div className="flex items-center gap-4 mb-4">
         <Avatar className="w-16 h-16">
           <AvatarFallback className="bg-primary text-primary-foreground font-semibold text-lg">
