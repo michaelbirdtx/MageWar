@@ -27,7 +27,7 @@ export default function ResultsModal({
 }: ResultsModalProps) {
   return (
     <Dialog open={open} onOpenChange={() => {}}>
-      <DialogContent className="sm:max-w-md" data-testid="modal-results">
+      <DialogContent className="sm:max-w-md" hideClose data-testid="modal-results">
         <DialogHeader>
           <DialogTitle className="font-serif text-2xl text-center">Round Results</DialogTitle>
         </DialogHeader>
