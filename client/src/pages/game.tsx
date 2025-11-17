@@ -30,6 +30,7 @@ export default function GamePage() {
   const [isLoading, setIsLoading] = useState(false);
   const [showVictoryDialog, setShowVictoryDialog] = useState(false);
   const [showDefeatDialog, setShowDefeatDialog] = useState(false);
+  const [showTieDialog, setShowTieDialog] = useState(false);
   const [showCharacterCreator, setShowCharacterCreator] = useState(true);
   const [playerSpellLocked, setPlayerSpellLocked] = useState(false);
   const [aiSpellLocked, setAiSpellLocked] = useState(false);
@@ -49,6 +50,8 @@ export default function GamePage() {
       setShowVictoryDialog(true);
     } else if (gameState?.gamePhase === "defeat") {
       setShowDefeatDialog(true);
+    } else if (gameState?.gamePhase === "tie") {
+      setShowTieDialog(true);
     }
   }, [gameState?.gamePhase]);
   
@@ -301,6 +304,23 @@ export default function GamePage() {
           <AlertDialogFooter>
             <AlertDialogAction onClick={handleNewGame} data-testid="button-defeat-new-game">
               Try Again
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+      
+      {/* Tie Dialog */}
+      <AlertDialog open={showTieDialog} onOpenChange={setShowTieDialog}>
+        <AlertDialogContent data-testid="dialog-tie">
+          <AlertDialogHeader>
+            <AlertDialogTitle className="font-serif text-2xl">Draw!</AlertDialogTitle>
+            <AlertDialogDescription>
+              Both you and the Dark Sorcerer have fallen in the final clash of magic! Your spells were equally matched.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogAction onClick={handleNewGame} data-testid="button-tie-new-game">
+              Play Again
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
