@@ -37,7 +37,8 @@
 ## Core Interface Sections
 
 ### 1. Component Library (Left Panel)
-- **Layout**: Vertical scrolling grid (grid-cols-2 on wide, grid-cols-1 on narrow)
+- **Layout**: Vertical scrolling grid (grid-cols-1)
+- **Height**: Uses viewport-based height (max-h-[calc(100vh-240px)]) to maximize available vertical space
 - **Component Cards**: Rounded-lg border-2, aspect-square containers
 - **Element Categories**: Tabbed interface (Fire/Water/Earth/Air) with icon indicators
 - **Visual Treatment**: Each component displays icon (Heroicons), name, and brief descriptor
