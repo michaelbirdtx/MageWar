@@ -165,9 +165,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Switch to AI turn
       gameState = switchTurn(gameState);
       
-      // Generate AI spell based on difficulty
+      // Generate AI spell based on difficulty and specialization
       const difficulty = getAIDifficulty(gameState.opponent.health, gameState.player.health);
-      const aiComponents = generateAISpell(gameState.opponent.mana, difficulty);
+      const aiComponents = generateAISpell(gameState.opponent.mana, difficulty, gameState.opponent.specialization);
       
       if (aiComponents.length === 0) {
         // AI passes turn if can't cast
