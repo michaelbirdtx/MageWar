@@ -379,6 +379,21 @@ function determineEffectNameBackend(
     } else if (has("storm", "sand", "lightning")) {
       effectName = "Sandstorm Surge";
       bonus = 4;
+    } else if (has("boulder", "sand", "stone")) {
+      effectName = "Earthen Avalanche";
+      bonus = 4;
+    } else if (has("boulder", "stone", "lightning")) {
+      effectName = "Thunder Crash";
+      bonus = 4;
+    } else if (has("boulder", "stone", "sulfur")) {
+      effectName = "Sulfur Barrage";
+      bonus = 4;
+    } else if (has("boulder", "lightning", "storm")) {
+      effectName = "Thunder Boulder";
+      bonus = 4;
+    } else if (has("stone", "lightning", "storm")) {
+      effectName = "Thunder Stone";
+      bonus = 4;
     } else if (has("magma", "frost")) {
       effectName = "Steam Eruption";
       bonus = 4;
@@ -428,6 +443,30 @@ function determineEffectNameBackend(
       bonus = 3;
     } else if (has("sand", "storm")) {
       effectName = "Sandstorm";
+      bonus = 3;
+    } else if (has("boulder", "sand")) {
+      effectName = "Rock Slide";
+      bonus = 3;
+    } else if (has("boulder", "lightning")) {
+      effectName = "Lightning Boulder";
+      bonus = 3;
+    } else if (has("boulder", "storm")) {
+      effectName = "Storm Boulder";
+      bonus = 3;
+    } else if (has("boulder", "sulfur")) {
+      effectName = "Sulfuric Rock";
+      bonus = 3;
+    } else if (has("stone", "lightning")) {
+      effectName = "Lightning Stone";
+      bonus = 3;
+    } else if (has("stone", "storm")) {
+      effectName = "Storm Stone";
+      bonus = 3;
+    } else if (has("stone", "magma")) {
+      effectName = "Molten Stone";
+      bonus = 3;
+    } else if (has("stone", "frost")) {
+      effectName = "Frozen Stone";
       bonus = 3;
     } else if (has("lightning", "storm")) {
       effectName = "Thunderstorm";
