@@ -62,7 +62,7 @@ export interface GameState {
   player: Mage;
   opponent: Mage;
   currentTurn: "player" | "opponent";
-  gamePhase: "building" | "combat" | "victory" | "defeat";
+  gamePhase: "building" | "combat" | "victory" | "defeat" | "tie";
   playerSpellLocked: boolean;
   aiSpellLocked: boolean;
   lockedPlayerSpell: Spell | null;
