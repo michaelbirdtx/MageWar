@@ -332,10 +332,25 @@ function determineEffectNameBackend(
     } else if (has("lightning", "storm", "crystal", "ice")) {
       effectName = "Prismatic Lightning";
       bonus = 6;
+    } else if (has("magma", "sand", "crystal", "stone")) {
+      effectName = "Obsidian Cascade";
+      bonus = 6;
+    } else if (has("lightning", "storm", "sand", "crystal")) {
+      effectName = "Fulgurite Tempest";
+      bonus = 6;
     }
     // 3 Material Combinations
     else if (has("magma", "sulfur", "crystal")) {
       effectName = "Volcanic Crystal";
+      bonus = 5;
+    } else if (has("sand", "crystal", "stone")) {
+      effectName = "Crystal Sandstorm";
+      bonus = 5;
+    } else if (has("sand", "crystal", "lightning")) {
+      effectName = "Glass Shard Storm";
+      bonus = 5;
+    } else if (has("magma", "sand", "crystal")) {
+      effectName = "Molten Glass";
       bonus = 5;
     } else if (has("magma", "sulfur", "stone")) {
       effectName = "Magma Bomb";
@@ -358,6 +373,12 @@ function determineEffectNameBackend(
     } else if (has("lightning", "storm", "crystal")) {
       effectName = "Prismatic Storm";
       bonus = 5;
+    } else if (has("sand", "stone", "sulfur")) {
+      effectName = "Volcanic Sand";
+      bonus = 4;
+    } else if (has("storm", "sand", "lightning")) {
+      effectName = "Sandstorm Surge";
+      bonus = 4;
     } else if (has("magma", "frost")) {
       effectName = "Steam Eruption";
       bonus = 4;
@@ -392,6 +413,21 @@ function determineEffectNameBackend(
       bonus = 3;
     } else if (has("stone", "crystal")) {
       effectName = "Crystalline Strike";
+      bonus = 3;
+    } else if (has("sand", "crystal")) {
+      effectName = "Crystal Sand";
+      bonus = 3;
+    } else if (has("sand", "stone")) {
+      effectName = "Stone Barrage";
+      bonus = 3;
+    } else if (has("sand", "lightning")) {
+      effectName = "Fulgurite Strike";
+      bonus = 3;
+    } else if (has("sand", "magma")) {
+      effectName = "Glass Blast";
+      bonus = 3;
+    } else if (has("sand", "storm")) {
+      effectName = "Sandstorm";
       bonus = 3;
     } else if (has("lightning", "storm")) {
       effectName = "Thunderstorm";
