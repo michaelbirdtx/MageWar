@@ -336,8 +336,18 @@ export function calculateSpellPower(components: SpellComponent[]): {
     };
   }
 
-  // Determine target
-  const target = hasPropulsionInsideContainer ? "opponent" : "self";
+  // Determine target based on primary effect type
+  let target: "self" | "opponent" = "self";
+  if (totalDamage > 0 && totalShield === 0 && totalHealing === 0) {
+    // Pure damage spell targets opponent
+    target = "opponent";
+  } else if (totalDamage > 0 && (totalShield > 0 || totalHealing > 0)) {
+    // Mixed spell with damage targets opponent
+    target = "opponent";
+  } else {
+    // Pure shield or healing spell targets self
+    target = "self";
+  }
 
   // Validation
   let validationError: string | undefined;
