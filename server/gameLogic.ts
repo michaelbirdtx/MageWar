@@ -251,19 +251,28 @@ export function applyCombatDamage(state: GameState, damage: number, target: "pla
       ...newState.player,
       health: Math.max(0, newState.player.health - damage),
     };
-    
-    if (newState.player.health <= 0) {
-      newState.gamePhase = "defeat";
-    }
   } else {
     newState.opponent = {
       ...newState.opponent,
       health: Math.max(0, newState.opponent.health - damage),
     };
-    
-    if (newState.opponent.health <= 0) {
-      newState.gamePhase = "victory";
-    }
+  }
+  
+  return newState;
+}
+
+export function checkGameEnd(state: GameState): GameState {
+  const newState = { ...state };
+  
+  const playerDead = newState.player.health <= 0;
+  const opponentDead = newState.opponent.health <= 0;
+  
+  if (playerDead && opponentDead) {
+    newState.gamePhase = "tie";
+  } else if (playerDead) {
+    newState.gamePhase = "defeat";
+  } else if (opponentDead) {
+    newState.gamePhase = "victory";
   }
   
   return newState;
