@@ -15,6 +15,7 @@ import {
   calculateSpellPower,
   applySpecializationBonus,
 } from "@/lib/gameData";
+import { useToast } from "@/hooks/use-toast";
 
 interface SpellBuilderProps {
   components: SpellComponent[];
@@ -35,6 +36,7 @@ export default function SpellBuilder({
 }: SpellBuilderProps) {
   const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
   const [dragOverChild, setDragOverChild] = useState<string | null>(null);
+  const { toast } = useToast();
 
   const spellStats = calculateSpellPower(components);
   const baseDamage = spellStats.damage;
@@ -76,10 +78,28 @@ export default function SpellBuilder({
 
     if (parentId) {
       // Dropping inside a container
+      
+      // Prevent containers from being dropped into other containers
+      if (newComponent.type === "container") {
+        toast({
+          title: "Invalid Action",
+          description: "Containers cannot be placed inside other containers. Only materials and propulsion can go inside containers.",
+          variant: "destructive",
+        });
+        setDragOverIndex(null);
+        setDragOverChild(null);
+        return;
+      }
+      
       const updatedComponents = components.map((comp) => {
         if (comp.id === parentId && comp.type === "container") {
           // Limit containers to 4 children max
           if ((comp.children || []).length >= 4) {
+            toast({
+              title: "Container Full",
+              description: "Each container can hold a maximum of 4 components.",
+              variant: "destructive",
+            });
             return comp;
           }
           return {
@@ -93,7 +113,13 @@ export default function SpellBuilder({
     } else {
       // Dropping at top level - only containers allowed
       if (newComponent.type !== "container") {
-        // Silently ignore non-container drops at top level
+        toast({
+          title: "Invalid Action",
+          description: "Only containers (Air Sphere or Vortex) can be placed in the main spell area. Materials and propulsion must go inside containers.",
+          variant: "destructive",
+        });
+        setDragOverIndex(null);
+        setDragOverChild(null);
         return;
       }
 
@@ -102,7 +128,13 @@ export default function SpellBuilder({
         (c) => c.type === "container",
       ).length;
       if (containerCount >= MAX_SPELLS_PER_ROUND) {
-        // Silently ignore - max containers reached
+        toast({
+          title: "Maximum Spells Reached",
+          description: `You can only cast up to ${MAX_SPELLS_PER_ROUND} spells per round.`,
+          variant: "destructive",
+        });
+        setDragOverIndex(null);
+        setDragOverChild(null);
         return;
       }
 
