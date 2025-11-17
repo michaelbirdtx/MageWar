@@ -283,6 +283,10 @@ export function restoreMana(mage: Mage, amount: number): Mage {
   };
 }
 
+export function regenerateMana(mage: Mage): Mage {
+  return restoreMana(mage, mage.manaRegen);
+}
+
 export function switchTurn(state: GameState): GameState {
   const newTurn = state.currentTurn === "player" ? "opponent" : "player";
   

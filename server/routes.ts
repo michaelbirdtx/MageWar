@@ -7,6 +7,7 @@ import {
   validateSpell, 
   applyCombatDamage,
   consumeMana,
+  regenerateMana,
   switchTurn,
   CharacterAttributes
 } from "./gameLogic";
@@ -102,7 +103,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
-  // Cast a spell
+  // Cast a spell (now with simultaneous reveal)
   app.post("/api/game/:sessionId/cast", async (req, res) => {
     try {
       const { sessionId } = req.params;
@@ -121,26 +122,86 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: "Game is over" });
       }
       
-      // Validate spell
+      // Validate player spell
       const validation = validateSpell(components, gameState.player.mana, gameState.player.specialization);
       if (!validation.valid) {
         return res.status(400).json({ error: validation.error });
       }
       
-      // Calculate spell effects
-      const { damage, manaCost, effect, target } = calculateSpellStats(components, gameState.player.specialization);
+      // Calculate player spell effects
+      const playerStats = calculateSpellStats(components, gameState.player.specialization);
       
-      // Apply damage and mana cost
-      gameState.player = consumeMana(gameState.player, manaCost);
-      gameState = applyCombatDamage(gameState, damage, target === "opponent" ? "opponent" : "player");
+      // Lock in player spell
+      gameState.playerSpellLocked = true;
+      gameState.lockedPlayerSpell = {
+        id: `player-spell-${Date.now()}`,
+        name: playerStats.effect,
+        components,
+        totalManaCost: playerStats.manaCost,
+        damage: playerStats.damage,
+        effect: playerStats.effect,
+      };
+      
+      // Generate AI spell immediately
+      const difficulty = getAIDifficulty(gameState.opponent.health, gameState.player.health);
+      const aiComponents = generateAISpell(gameState.opponent.mana, difficulty, gameState.opponent.specialization);
+      
+      let aiStats;
+      if (aiComponents.length > 0) {
+        // Calculate AI spell effects
+        aiStats = calculateSpellStats(aiComponents, gameState.opponent.specialization);
+        
+        // Lock in AI spell
+        gameState.aiSpellLocked = true;
+        gameState.lockedAiSpell = {
+          id: `ai-spell-${Date.now()}`,
+          name: aiStats.effect,
+          components: aiComponents,
+          totalManaCost: aiStats.manaCost,
+          damage: aiStats.damage,
+          effect: aiStats.effect,
+        };
+      }
+      
+      // Apply both spells simultaneously
+      gameState.player = consumeMana(gameState.player, playerStats.manaCost);
+      gameState = applyCombatDamage(gameState, playerStats.damage, playerStats.target === "opponent" ? "opponent" : "player");
+      
+      if (aiComponents.length > 0 && aiStats) {
+        gameState.opponent = consumeMana(gameState.opponent, aiStats.manaCost);
+        gameState = applyCombatDamage(gameState, aiStats.damage, aiStats.target === "opponent" ? "player" : "opponent");
+      }
+      
       gameState.gamePhase = "combat";
+      
+      // Regenerate mana for next turn
+      gameState.player = regenerateMana(gameState.player);
+      gameState.opponent = regenerateMana(gameState.opponent);
+      
+      // Unlock spells for next round
+      gameState.playerSpellLocked = false;
+      gameState.aiSpellLocked = false;
+      gameState.lockedPlayerSpell = null;
+      gameState.lockedAiSpell = null;
       
       await storage.updateGameState(sessionId, gameState);
       
-      // Return the spell result
+      // Return both spell results for simultaneous reveal
       res.json({
         gameState,
-        spellResult: { effect, damage, manaCost, target },
+        playerSpellResult: { 
+          effect: playerStats.effect, 
+          damage: playerStats.damage, 
+          manaCost: playerStats.manaCost, 
+          target: playerStats.target,
+        },
+        aiSpellResult: aiComponents.length > 0 && aiStats ? {
+          effect: aiStats.effect,
+          damage: aiStats.damage,
+          manaCost: aiStats.manaCost,
+          target: aiStats.target,
+          components: aiComponents,
+        } : null,
       });
     } catch (error) {
       console.error("Error casting spell:", error);
