@@ -37,8 +37,8 @@ export default function GamePage() {
   const [aiThinkingLock, setAiThinkingLock] = useState(false);
   const [showResultsModal, setShowResultsModal] = useState(false);
   const [roundResults, setRoundResults] = useState<{
-    playerResult: { effect: string; damage: number } | null;
-    aiResult: { effect: string; damage: number } | null;
+    playerResult: { effect: string; damage: number; shieldPower?: number; healingPower?: number; bonus?: number } | null;
+    aiResult: { effect: string; damage: number; shieldPower?: number; healingPower?: number; bonus?: number } | null;
   } | null>(null);
   const { toast } = useToast();
   
@@ -128,10 +128,16 @@ export default function GamePage() {
           playerResult: {
             effect: response.playerSpellResult.effect,
             damage: response.playerSpellResult.damage,
+            shieldPower: response.playerSpellResult.shieldPower,
+            healingPower: response.playerSpellResult.healingPower,
+            bonus: response.playerSpellResult.bonus,
           },
           aiResult: response.aiSpellResult ? {
             effect: response.aiSpellResult.effect,
             damage: response.aiSpellResult.damage,
+            shieldPower: response.aiSpellResult.shieldPower,
+            healingPower: response.aiSpellResult.healingPower,
+            bonus: response.aiSpellResult.bonus,
           } : null,
         });
         setShowResultsModal(true);

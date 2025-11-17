@@ -13,12 +13,18 @@ export interface CastSpellResponse {
   playerSpellResult: {
     effect: string;
     damage: number;
+    shieldPower?: number;
+    healingPower?: number;
+    bonus?: number;
     manaCost: number;
     target: "self" | "opponent";
   };
   aiSpellResult?: {
     effect: string;
     damage: number;
+    shieldPower?: number;
+    healingPower?: number;
+    bonus?: number;
     manaCost: number;
     target: "self" | "opponent";
     components: SpellComponent[];

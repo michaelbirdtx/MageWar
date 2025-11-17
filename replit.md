@@ -21,7 +21,7 @@ Preferred communication style: Simple, everyday language.
 *   **Runtime & Server**: Node.js with Express.js REST API, TypeScript.
 *   **API Design**: RESTful endpoints for game state (`/api/game/new`, `/api/game/:sessionId`, `/api/game/:sessionId/cast`).
 *   **Game Logic**: Server-authoritative state, spell validation, damage calculation, AI opponent with strategic spell-building.
-*   **Simultaneous Spell Reveal**: Player and AI spells are locked in and calculated simultaneously, with results displayed side-by-side. Mana regenerates after both spells resolve.
+*   **Simultaneous Spell Reveal**: Player and AI spells are locked in and calculated simultaneously, with results displayed side-by-side in the Results Modal. The modal shows all spell effects (Damage in red, Shield in blue, Healing in green) for both player and AI, with creative material bonuses highlighted. Mana regenerates after both spells resolve.
 
 ### Data Storage
 
