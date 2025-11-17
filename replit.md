@@ -174,3 +174,20 @@ Preferred communication style: Simple, everyday language.
 - Ensures correct tie detection when both combatants reach 0 health in same round
 - Fixes bug where victories weren't announced due to sequential damage application
 - Date implemented: November 17, 2025
+
+**AI Thinking Animation**
+- Visual feedback showing AI "thinking" before locking in spell choice
+- **Implementation Details**:
+  - `aiThinkingLock` state triggers random 1-3 second delay when round starts
+  - AI's mage card displays green background after delay
+  - Thinking lock persists until combat lock takes over (no visual flash)
+  - Resets when starting new game or clicking "Play Again"
+- **State Flow**:
+  1. Round begins (gamePhase = "building")
+  2. Random delay (1000-3000ms)
+  3. AI card turns green (aiThinkingLock = true)
+  4. Player casts spell → AI card stays green (thinking lock active)
+  5. Server responds → Combat locks activate (both cards green)
+  6. Results modal → Thinking lock cleared for next round
+- **Purpose**: Creates realistic AI behavior impression, making opponent feel more lifelike
+- Date implemented: November 17, 2025
