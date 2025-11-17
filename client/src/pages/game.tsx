@@ -79,30 +79,24 @@ export default function GamePage() {
       setIsLoading(true);
       const response = await castSpell(sessionId, spellComponents);
       
-      // Show spell animation
+      // Show simultaneous reveal animation with both spells
       setCastingSpell({
-        effect: response.spellResult.effect,
-        damage: response.spellResult.damage,
-        caster: "player",
-        target: response.spellResult.target,
+        playerResult: {
+          effect: response.playerSpellResult.effect,
+          damage: response.playerSpellResult.damage,
+        },
+        aiResult: response.aiSpellResult ? {
+          effect: response.aiSpellResult.effect,
+          damage: response.aiSpellResult.damage,
+        } : null,
       });
       
       // Update game state after animation
-      setTimeout(async () => {
+      setTimeout(() => {
         setGameState(response.gameState);
         setCastingSpell(null);
         setSpellComponents([]);
-        
-        // Check victory
-        if (response.gameState.gamePhase === "victory") {
-          return;
-        }
-        
-        // Execute AI turn
-        setTimeout(() => {
-          handleAITurn();
-        }, 1000);
-      }, 2000);
+      }, 2500);
     } catch (error: any) {
       toast({
         title: "Error",
@@ -245,7 +239,10 @@ export default function GamePage() {
               player={gameState.player}
               opponent={gameState.opponent}
               currentTurn={gameState.currentTurn}
-              castingSpell={castingSpell}
+              simultaneousResults={castingSpell?.playerResult ? {
+                player: castingSpell.playerResult,
+                ai: castingSpell.aiResult,
+              } : null}
             />
           </div>
         </div>

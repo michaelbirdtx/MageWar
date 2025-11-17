@@ -218,7 +218,7 @@ export default function SpellBuilder({
               data-testid="button-cast-spell"
             >
               <Sparkles className="w-4 h-4 mr-2" />
-              Cast Spell
+              Lock In Spell
             </Button>
           </div>
         </Card>

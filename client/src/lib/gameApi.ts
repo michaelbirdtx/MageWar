@@ -10,12 +10,19 @@ export interface CharacterData {
 
 export interface CastSpellResponse {
   gameState: GameState;
-  spellResult: {
+  playerSpellResult: {
     effect: string;
     damage: number;
     manaCost: number;
     target: "self" | "opponent";
   };
+  aiSpellResult?: {
+    effect: string;
+    damage: number;
+    manaCost: number;
+    target: "self" | "opponent";
+    components: SpellComponent[];
+  } | null;
 }
 
 export interface AITurnResponse {
