@@ -257,7 +257,7 @@ function ComponentInBuilder({
           </div>
           <p className="text-xs text-muted-foreground">{component.description}</p>
         </div>
-        <span className="text-xs font-bold text-primary">{component.manaCost}m</span>
+        <span className="text-xs font-bold text-primary">{component.manaCost} Mana</span>
         <Button
           variant="ghost"
           size="icon"
@@ -284,7 +284,7 @@ function ComponentInBuilder({
                 <div key={child.id} className={`flex items-center gap-2 p-2 rounded-md border ${elementBg} ${elementBorder} relative group`}>
                   <ElementIcon element={child.element} className={`w-4 h-4 ${ELEMENT_COLORS[child.element]}`} />
                   <span className={`text-xs font-medium ${ELEMENT_COLORS[child.element]}`}>{child.name}</span>
-                  <span className="text-xs ml-auto text-muted-foreground">{child.manaCost}m</span>
+                  <span className="text-xs ml-auto text-muted-foreground">{child.manaCost} Mana</span>
                   <Button
                     variant="ghost"
                     size="icon"
