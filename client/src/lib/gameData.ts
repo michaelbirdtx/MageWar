@@ -311,15 +311,15 @@ export function calculateSpellPower(components: SpellComponent[]): {
     if (isHealingSpell) {
       effectType = "healing";
       // Healing power = sum of children mana costs
-      healing = childMaterials.reduce((sum, id) => {
-        const child = comp.children?.find(c => c.id === id);
+      healing = childMaterials.reduce((sum, baseId) => {
+        const child = comp.children?.find(c => (c.baseId || c.id) === baseId);
         return sum + (child?.manaCost || 0);
       }, 0);
     } else if (isShieldSpell) {
       effectType = "shield";
       // Shield power = sum of children mana costs
-      shield = childMaterials.reduce((sum, id) => {
-        const child = comp.children?.find(c => c.id === id);
+      shield = childMaterials.reduce((sum, baseId) => {
+        const child = comp.children?.find(c => (c.baseId || c.id) === baseId);
         return sum + (child?.manaCost || 0);
       }, 0);
     } else {
