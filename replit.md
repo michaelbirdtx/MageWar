@@ -191,3 +191,42 @@ Preferred communication style: Simple, everyday language.
   6. Results modal → Thinking lock cleared for next round
 - **Purpose**: Creates realistic AI behavior impression, making opponent feel more lifelike
 - Date implemented: November 17, 2025
+
+**Multi-Container Spell System with Shields, Healing & Creative Discovery**
+- Players and AI can cast 1-3 containers per turn combining offensive, defensive, and healing effects
+- **Component Effect Types**:
+  - **Damage Materials**: Flame, Ember, Magma (Fire), Stone, Boulder (Earth), Lightning, Storm (Air)
+  - **Shield Materials**: Ice, Crystal (Water), Wind (Air), Flame Guard (Fire)
+  - **Healing Materials**: Water, Mist (Water), Clay (Earth), Vital Breeze (Air)
+- **Spell Targeting Logic** (fixed November 17, 2025):
+  - Pure damage spells → target opponent
+  - Mixed spells with damage → target opponent
+  - Pure shield/healing spells → target self
+  - Previous bug: relied on propulsion component presence, now correctly uses effect type
+- **Creative Spell Combinations**:
+  - Multi-element spells receive unique discovered names and +2 to +5 bonus damage
+  - Examples: Fire+Water="Steam Blast", Fire+Earth="Lava Burst", Fire+Air="Firestorm"
+  - Displayed with purple highlighting in UI to emphasize discovery gameplay
+  - Bonus damage stacks with specialization bonuses
+- **Combat Resolution Order** (server/gameLogic.ts):
+  1. Shields applied to both player and opponent
+  2. Damage dealt (reduced by active shields)
+  3. Healing applied after damage
+  4. Win conditions checked
+- **AI Multi-Container Strategy** (server/aiLogic.ts):
+  - Strategic mode (80%): Builds 1-3 containers based on health/mana/opponent state
+    - Low health → prioritize shields and healing
+    - High health → prioritize damage
+    - Balanced approach when moderate health
+  - Experimental mode (20%): Attempts creative multi-element combinations for discovery
+  - AI adapts container count to available mana
+- **UI Enhancements**:
+  - SpellBuilder displays damage/shield/healing stats separately
+  - Discovered spell names shown prominently with purple highlight
+  - Creative bonuses indicated in both builder and results modal
+  - ResultsModal shows comprehensive breakdown: damage dealt, shields applied, healing received
+- **Schema Updates** (shared/schema.ts):
+  - Added `effectType: 'damage' | 'shield' | 'healing'` to SpellComponent
+  - Added `shieldPower`, `healingPower`, `bonus` fields to SpellComponent and Spell interfaces
+  - Maintains backward compatibility with existing damage-only spells
+- Date implemented: November 17, 2025
