@@ -7,27 +7,26 @@ const availableComponents: SpellComponent[] = [
   { id: "air-sphere", name: "Air Sphere", element: "air", type: "container", role: "container", description: "Hollow sphere of compressed air", manaCost: 10, baseDamage: 0, damageMultiplier: 1 },
   { id: "gust", name: "Gust", element: "air", type: "action", role: "propulsion", description: "Propels objects forward", manaCost: 8, baseDamage: 0, damageMultiplier: 1 },
   { id: "vortex", name: "Vortex", element: "air", type: "container", role: "container", description: "Swirling air container", manaCost: 12, baseDamage: 0, damageMultiplier: 1 },
-  { id: "vital-breeze", name: "Vital Breeze", element: "air", type: "material", role: "material", description: "Rejuvenating wind essence", manaCost: 6, baseDamage: 0, damageMultiplier: 1, effectType: "healing", healingPower: 10 },
-  { id: "wind", name: "Wind", element: "air", type: "material", role: "material", description: "Flowing air current", manaCost: 6, baseDamage: 0, damageMultiplier: 1, effectType: "shield", shieldPower: 8 },
+  { id: "lightning", name: "Lightning", element: "air", type: "material", role: "material", description: "Electrical discharge", manaCost: 9, baseDamage: 4, damageMultiplier: 1 },
+  { id: "storm", name: "Storm", element: "air", type: "material", role: "material", description: "Violent tempest", manaCost: 11, baseDamage: 5, damageMultiplier: 1 },
   
   // Earth Elements
-  { id: "clay", name: "Clay", element: "earth", type: "material", role: "material", description: "Restorative earth essence", manaCost: 5, baseDamage: 0, damageMultiplier: 1, effectType: "healing", healingPower: 10 },
-  { id: "crystal", name: "Crystal", element: "earth", type: "material", role: "material", description: "Crystalline barrier shield", manaCost: 12, baseDamage: 0, damageMultiplier: 1, effectType: "shield", shieldPower: 15 },
+  { id: "boulder", name: "Boulder", element: "earth", type: "material", role: "material", description: "Massive rock", manaCost: 10, baseDamage: 5, damageMultiplier: 1 },
+  { id: "crystal", name: "Crystal", element: "earth", type: "material", role: "material", description: "Amplifies magical energy", manaCost: 7, baseDamage: 0, damageMultiplier: 2 },
   { id: "sand", name: "Sand", element: "earth", type: "material", role: "material", description: "Fine granular material", manaCost: 4, baseDamage: 0, damageMultiplier: 2 },
   { id: "stone", name: "Stone", element: "earth", type: "material", role: "material", description: "Dense rock fragment", manaCost: 6, baseDamage: 0, damageMultiplier: 3 },
+  { id: "sulfur", name: "Sulfur", element: "earth", type: "material", role: "material", description: "Highly flammable mineral", manaCost: 8, baseDamage: 0, damageMultiplier: 4 },
   
   // Fire Elements
   { id: "ember", name: "Ember", element: "fire", type: "material", role: "activation", description: "Smoldering heat source", manaCost: 6, baseDamage: 2, damageMultiplier: 1 },
   { id: "flame", name: "Flame", element: "fire", type: "material", role: "activation", description: "Pure elemental fire", manaCost: 10, baseDamage: 3, damageMultiplier: 1 },
-  { id: "flame-guard", name: "Flame Guard", element: "fire", type: "material", role: "material", description: "Protective fire barrier", manaCost: 9, baseDamage: 0, damageMultiplier: 1, effectType: "shield", shieldPower: 10 },
+  { id: "magma", name: "Magma", element: "fire", type: "material", role: "material", description: "Molten rock essence", manaCost: 12, baseDamage: 6, damageMultiplier: 1 },
   { id: "spark", name: "Spark", element: "fire", type: "action", role: "activation", description: "Ignites flammable materials", manaCost: 5, baseDamage: 1, damageMultiplier: 1 },
-  { id: "sulfur", name: "Sulfur", element: "earth", type: "material", role: "material", description: "Highly flammable mineral", manaCost: 8, baseDamage: 0, damageMultiplier: 4 },
   
   // Water Elements
   { id: "frost", name: "Frost", element: "water", type: "action", role: "activation", description: "Freezes on contact", manaCost: 9, baseDamage: 2, damageMultiplier: 1 },
-  { id: "ice", name: "Ice", element: "water", type: "material", role: "material", description: "Frozen barrier shield", manaCost: 8, baseDamage: 0, damageMultiplier: 1, effectType: "shield", shieldPower: 12 },
-  { id: "mist", name: "Mist", element: "water", type: "material", role: "material", description: "Healing mist vapor", manaCost: 5, baseDamage: 0, damageMultiplier: 1, effectType: "healing", healingPower: 8 },
-  { id: "water", name: "Water", element: "water", type: "material", role: "material", description: "Pure healing essence", manaCost: 7, baseDamage: 0, damageMultiplier: 1, effectType: "healing", healingPower: 12 },
+  { id: "ice", name: "Ice", element: "water", type: "material", role: "material", description: "Frozen crystalline structure", manaCost: 8, baseDamage: 0, damageMultiplier: 1.5 },
+  { id: "mist", name: "Mist", element: "water", type: "material", role: "material", description: "Gentle water vapor", manaCost: 5, baseDamage: 0, damageMultiplier: 1 },
 ];
 
 // Individual container templates for building multi-spell combinations
@@ -72,26 +71,23 @@ const damageSpells = [
 
 const shieldSpells = [
   {
-    name: "Ice Barrier",
-    manaCost: 26,
-    components: [{ ...availableComponents.find(c => c.id === "air-sphere")!, children: [
+    name: "Ice Shield",
+    manaCost: 20,
+    components: [{ ...availableComponents.find(c => c.id === "vortex")!, children: [
       availableComponents.find(c => c.id === "ice")!,
-      availableComponents.find(c => c.id === "wind")!,
     ]}],
   },
   {
-    name: "Crystal Shield",
-    manaCost: 28,
-    components: [{ ...availableComponents.find(c => c.id === "air-sphere")!, children: [
-      availableComponents.find(c => c.id === "crystal")!,
-      availableComponents.find(c => c.id === "stone")!,
+    name: "Ember Shield",
+    manaCost: 18,
+    components: [{ ...availableComponents.find(c => c.id === "vortex")!, children: [
+      availableComponents.find(c => c.id === "ember")!,
     ]}],
   },
   {
-    name: "Flame Guard",
-    manaCost: 25,
-    components: [{ ...availableComponents.find(c => c.id === "air-sphere")!, children: [
-      availableComponents.find(c => c.id === "flame-guard")!,
+    name: "Sand Shield",
+    manaCost: 16,
+    components: [{ ...availableComponents.find(c => c.id === "vortex")!, children: [
       availableComponents.find(c => c.id === "sand")!,
     ]}],
   },
@@ -99,27 +95,23 @@ const shieldSpells = [
 
 const healingSpells = [
   {
-    name: "Healing Waters",
-    manaCost: 24,
-    components: [{ ...availableComponents.find(c => c.id === "air-sphere")!, children: [
-      availableComponents.find(c => c.id === "water")!,
+    name: "Restoration",
+    manaCost: 38,
+    components: [{ ...availableComponents.find(c => c.id === "vortex")!, children: [
       availableComponents.find(c => c.id === "mist")!,
+      availableComponents.find(c => c.id === "crystal")!,
+      availableComponents.find(c => c.id === "ember")!,
+      availableComponents.find(c => c.id === "lightning")!,
     ]}],
   },
   {
-    name: "Life Essence",
-    manaCost: 22,
-    components: [{ ...availableComponents.find(c => c.id === "air-sphere")!, children: [
-      availableComponents.find(c => c.id === "clay")!,
-      availableComponents.find(c => c.id === "sand")!,
-    ]}],
-  },
-  {
-    name: "Vital Breeze",
-    manaCost: 22,
-    components: [{ ...availableComponents.find(c => c.id === "air-sphere")!, children: [
-      availableComponents.find(c => c.id === "vital-breeze")!,
-      availableComponents.find(c => c.id === "wind")!,
+    name: "Life Force",
+    manaCost: 40,
+    components: [{ ...availableComponents.find(c => c.id === "vortex")!, children: [
+      availableComponents.find(c => c.id === "mist")!,
+      availableComponents.find(c => c.id === "crystal")!,
+      availableComponents.find(c => c.id === "ember")!,
+      availableComponents.find(c => c.id === "storm")!,
     ]}],
   },
 ];

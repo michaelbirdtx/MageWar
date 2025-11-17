@@ -57,45 +57,39 @@ export const availableComponents: SpellComponent[] = [
     damageMultiplier: 1,
   },
   {
-    id: "vital-breeze",
-    name: "Vital Breeze",
+    id: "lightning",
+    name: "Lightning",
     element: "air",
     type: "material",
     role: "material",
-    description: "Rejuvenating wind essence",
-    manaCost: 6,
-    baseDamage: 0,
+    description: "Electrical discharge",
+    manaCost: 9,
+    baseDamage: 4,
     damageMultiplier: 1,
-    effectType: "healing",
-    healingPower: 10,
   },
   {
-    id: "wind",
-    name: "Wind",
+    id: "storm",
+    name: "Storm",
     element: "air",
     type: "material",
     role: "material",
-    description: "Flowing air current",
-    manaCost: 6,
-    baseDamage: 0,
+    description: "Violent tempest",
+    manaCost: 11,
+    baseDamage: 5,
     damageMultiplier: 1,
-    effectType: "shield",
-    shieldPower: 8,
   },
 
   // Earth Elements
   {
-    id: "clay",
-    name: "Clay",
+    id: "boulder",
+    name: "Boulder",
     element: "earth",
     type: "material",
     role: "material",
-    description: "Restorative earth essence",
-    manaCost: 5,
-    baseDamage: 0,
+    description: "Massive rock",
+    manaCost: 10,
+    baseDamage: 5,
     damageMultiplier: 1,
-    effectType: "healing",
-    healingPower: 10,
   },
   {
     id: "crystal",
@@ -103,12 +97,10 @@ export const availableComponents: SpellComponent[] = [
     element: "earth",
     type: "material",
     role: "material",
-    description: "Crystalline barrier shield",
-    manaCost: 12,
+    description: "Amplifies magical energy",
+    manaCost: 7,
     baseDamage: 0,
-    damageMultiplier: 1,
-    effectType: "shield",
-    shieldPower: 15,
+    damageMultiplier: 2,
   },
   {
     id: "sand",
@@ -157,17 +149,15 @@ export const availableComponents: SpellComponent[] = [
     damageMultiplier: 1,
   },
   {
-    id: "flame-guard",
-    name: "Flame Guard",
+    id: "magma",
+    name: "Magma",
     element: "fire",
     type: "material",
     role: "material",
-    description: "Protective fire barrier",
-    manaCost: 9,
-    baseDamage: 0,
+    description: "Molten rock essence",
+    manaCost: 12,
+    baseDamage: 6,
     damageMultiplier: 1,
-    effectType: "shield",
-    shieldPower: 10,
   },
   {
     id: "spark",
@@ -210,12 +200,10 @@ export const availableComponents: SpellComponent[] = [
     element: "water",
     type: "material",
     role: "material",
-    description: "Frozen barrier shield",
+    description: "Frozen crystalline structure",
     manaCost: 8,
     baseDamage: 0,
-    damageMultiplier: 1,
-    effectType: "shield",
-    shieldPower: 12,
+    damageMultiplier: 1.5,
   },
   {
     id: "mist",
@@ -223,25 +211,10 @@ export const availableComponents: SpellComponent[] = [
     element: "water",
     type: "material",
     role: "material",
-    description: "Healing mist vapor",
+    description: "Gentle water vapor",
     manaCost: 5,
     baseDamage: 0,
     damageMultiplier: 1,
-    effectType: "healing",
-    healingPower: 8,
-  },
-  {
-    id: "water",
-    name: "Water",
-    element: "water",
-    type: "material",
-    role: "material",
-    description: "Pure healing essence",
-    manaCost: 7,
-    baseDamage: 0,
-    damageMultiplier: 1,
-    effectType: "healing",
-    healingPower: 12,
   },
 ];
 
@@ -292,42 +265,74 @@ export function calculateSpellPower(components: SpellComponent[]): {
   } {
     let baseDamage = comp.baseDamage;
     let damageMultiplier = comp.damageMultiplier;
-    let shield = comp.shieldPower || 0;
-    let healing = comp.healingPower || 0;
     let manaCost = comp.manaCost;
     let hasPropulsion = false;
     let propulsionOutside = comp.role === "propulsion";
     const elements = new Set<ElementType>([comp.element]);
-    let effectType = comp.effectType || "damage";
+    const childMaterials: string[] = [];
 
     // Process children
+    const childElements = new Set<ElementType>();
     if (comp.children) {
       comp.children.forEach((child) => {
         baseDamage += child.baseDamage;
         damageMultiplier *= child.damageMultiplier;
-        shield += child.shieldPower || 0;
-        healing += child.healingPower || 0;
         manaCost += child.manaCost;
         elements.add(child.element);
+        childElements.add(child.element);
+        childMaterials.push(child.id);
         
         if (child.role === "propulsion" && comp.role === "container") {
           hasPropulsion = true;
         }
-        
-        // Determine effect type from materials
-        if (child.effectType === "shield") effectType = "shield";
-        if (child.effectType === "healing") effectType = "healing";
       });
     }
 
-    // Calculate final damage for this container
-    const cappedMultiplier = Math.min(damageMultiplier, 10);
-    const containerDamage = Math.min(Math.floor(baseDamage * cappedMultiplier), 100);
+    // Detect shield pattern: Vortex + (Ice OR Ember OR Sand)
+    const isVortex = comp.id === "vortex";
+    const hasIce = childMaterials.includes("ice");
+    const hasEmber = childMaterials.includes("ember");
+    const hasSand = childMaterials.includes("sand");
+    const isShieldSpell = isVortex && (hasIce || hasEmber || hasSand);
+
+    // Detect healing pattern: Vortex + all 4 elements via children (must have Mist, Crystal, Ember, + air material)
+    const hasMist = childMaterials.includes("mist");
+    const hasCrystal = childMaterials.includes("crystal");
+    const hasEmberForHealing = childMaterials.includes("ember");
+    const childrenHaveAllFourElements = childElements.has("fire") && childElements.has("water") && childElements.has("earth") && childElements.has("air");
+    const isHealingSpell = isVortex && hasMist && hasCrystal && hasEmberForHealing && childrenHaveAllFourElements;
+
+    // Determine effect type and calculate power
+    let effectType = "damage";
+    let shield = 0;
+    let healing = 0;
+    let containerDamage = 0;
+
+    if (isHealingSpell) {
+      effectType = "healing";
+      // Healing power = sum of children mana costs
+      healing = childMaterials.reduce((sum, id) => {
+        const child = comp.children?.find(c => c.id === id);
+        return sum + (child?.manaCost || 0);
+      }, 0);
+    } else if (isShieldSpell) {
+      effectType = "shield";
+      // Shield power = sum of children mana costs
+      shield = childMaterials.reduce((sum, id) => {
+        const child = comp.children?.find(c => c.id === id);
+        return sum + (child?.manaCost || 0);
+      }, 0);
+    } else {
+      // Normal damage spell
+      effectType = "damage";
+      const cappedMultiplier = Math.min(damageMultiplier, 10);
+      containerDamage = Math.min(Math.floor(baseDamage * cappedMultiplier), 100);
+    }
 
     return {
-      damage: effectType === "damage" ? containerDamage : 0,
-      shield: effectType === "shield" ? shield : 0,
-      healing: effectType === "healing" ? healing : 0,
+      damage: containerDamage,
+      shield,
+      healing,
       manaCost,
       hasPropulsion,
       propulsionOutside,
