@@ -64,8 +64,8 @@ export default function GamePage() {
   // AI "thinking" animation - randomly lock AI spell after round starts
   useEffect(() => {
     if (gameState?.gamePhase === "building" && !showResultsModal) {
-      // Random delay between 1-3 seconds
-      const delay = Math.random() * 2000 + 1000;
+      // Random delay between 3-6 seconds
+      const delay = Math.random() * 3000 + 3000;
       const timer = setTimeout(() => {
         setAiThinkingLock(true);
       }, delay);
