@@ -244,21 +244,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const playerToOpponent = playerStats.target === "opponent";
         const playerDamage = playerStats.damage + playerStats.bonus;
         
+        // Route all effects to the target, then apply shields
         if (playerToOpponent) {
-          // Damage opponent
-          const finalDamage = Math.max(0, playerDamage - playerStats.shieldPower);
+          // All effects target opponent
+          const damageToAI = playerDamage;
+          const shieldOnAI = playerStats.shieldPower;
+          const healingOnAI = playerStats.healingPower;
+          
+          const finalDamage = Math.max(0, damageToAI - shieldOnAI);
           gameState = applySimultaneousDamage(gameState, 0, finalDamage);
           gameState.opponent = {
             ...gameState.opponent,
-            health: Math.min(gameState.opponent.maxHealth, gameState.opponent.health + playerStats.healingPower),
+            health: Math.min(gameState.opponent.maxHealth, gameState.opponent.health + healingOnAI),
           };
         } else {
-          // Damage self
-          const finalDamage = Math.max(0, playerDamage - playerStats.shieldPower);
+          // All effects target self
+          const damageToPlayer = playerDamage;
+          const shieldOnPlayer = playerStats.shieldPower;
+          const healingOnPlayer = playerStats.healingPower;
+          
+          const finalDamage = Math.max(0, damageToPlayer - shieldOnPlayer);
           gameState = applySimultaneousDamage(gameState, finalDamage, 0);
           gameState.player = {
             ...gameState.player,
-            health: Math.min(gameState.player.maxHealth, gameState.player.health + playerStats.healingPower),
+            health: Math.min(gameState.player.maxHealth, gameState.player.health + healingOnPlayer),
           };
         }
       }
