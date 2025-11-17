@@ -288,19 +288,21 @@ export function calculateSpellPower(components: SpellComponent[]): {
       });
     }
 
-    // Detect shield pattern: Vortex + (Ice OR Ember OR Sand)
+    // Detect patterns (healing takes priority over shield)
     const isVortex = comp.id === "vortex";
-    const hasIce = childMaterials.includes("ice");
-    const hasEmber = childMaterials.includes("ember");
-    const hasSand = childMaterials.includes("sand");
-    const isShieldSpell = isVortex && (hasIce || hasEmber || hasSand);
-
+    
     // Detect healing pattern: Vortex + all 4 elements via children (must have Mist, Crystal, Ember, + air material)
     const hasMist = childMaterials.includes("mist");
     const hasCrystal = childMaterials.includes("crystal");
     const hasEmberForHealing = childMaterials.includes("ember");
     const childrenHaveAllFourElements = childElements.has("fire") && childElements.has("water") && childElements.has("earth") && childElements.has("air");
     const isHealingSpell = isVortex && hasMist && hasCrystal && hasEmberForHealing && childrenHaveAllFourElements;
+    
+    // Detect shield pattern: Vortex + (Ice OR Ember OR Sand), but NOT healing
+    const hasIce = childMaterials.includes("ice");
+    const hasEmber = childMaterials.includes("ember");
+    const hasSand = childMaterials.includes("sand");
+    const isShieldSpell = isVortex && (hasIce || hasEmber || hasSand) && !isHealingSpell;
 
     // Determine effect type and calculate power
     let effectType = "damage";

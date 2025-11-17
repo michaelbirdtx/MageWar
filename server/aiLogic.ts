@@ -33,38 +33,38 @@ const availableComponents: SpellComponent[] = [
 const damageSpells = [
   {
     name: "Fireball",
-    manaCost: 23,
+    manaCost: 31, // Air Sphere 10 + Sulfur 8 + Spark 5 + Gust 8
     components: [{ ...availableComponents.find(c => c.id === "air-sphere")!, children: [
-      availableComponents.find(c => c.id === "sulfur")!,
-      availableComponents.find(c => c.id === "spark")!,
-      availableComponents.find(c => c.id === "gust")!,
+      { ...availableComponents.find(c => c.id === "sulfur")! },
+      { ...availableComponents.find(c => c.id === "spark")! },
+      { ...availableComponents.find(c => c.id === "gust")! },
     ]}],
   },
   {
     name: "Frost Bolt",
-    manaCost: 27,
+    manaCost: 32, // Air Sphere 10 + Frost 9 + Mist 5 + Gust 8
     components: [{ ...availableComponents.find(c => c.id === "air-sphere")!, children: [
-      availableComponents.find(c => c.id === "frost")!,
-      availableComponents.find(c => c.id === "mist")!,
-      availableComponents.find(c => c.id === "gust")!,
+      { ...availableComponents.find(c => c.id === "frost")! },
+      { ...availableComponents.find(c => c.id === "mist")! },
+      { ...availableComponents.find(c => c.id === "gust")! },
     ]}],
   },
   {
     name: "Stone Strike",
-    manaCost: 24,
+    manaCost: 28, // Air Sphere 10 + Stone 6 + Sand 4 + Gust 8
     components: [{ ...availableComponents.find(c => c.id === "air-sphere")!, children: [
-      availableComponents.find(c => c.id === "stone")!,
-      availableComponents.find(c => c.id === "sand")!,
-      availableComponents.find(c => c.id === "gust")!,
+      { ...availableComponents.find(c => c.id === "stone")! },
+      { ...availableComponents.find(c => c.id === "sand")! },
+      { ...availableComponents.find(c => c.id === "gust")! },
     ]}],
   },
   {
     name: "Volcanic Blast",
-    manaCost: 32,
+    manaCost: 38, // Vortex 12 + Sulfur 8 + Flame 10 + Gust 8
     components: [{ ...availableComponents.find(c => c.id === "vortex")!, children: [
-      availableComponents.find(c => c.id === "sulfur")!,
-      availableComponents.find(c => c.id === "flame")!,
-      availableComponents.find(c => c.id === "gust")!,
+      { ...availableComponents.find(c => c.id === "sulfur")! },
+      { ...availableComponents.find(c => c.id === "flame")! },
+      { ...availableComponents.find(c => c.id === "gust")! },
     ]}],
   },
 ];
@@ -72,23 +72,23 @@ const damageSpells = [
 const shieldSpells = [
   {
     name: "Ice Shield",
-    manaCost: 20,
+    manaCost: 20, // Vortex 12 + Ice 8
     components: [{ ...availableComponents.find(c => c.id === "vortex")!, children: [
-      availableComponents.find(c => c.id === "ice")!,
+      { ...availableComponents.find(c => c.id === "ice")! },
     ]}],
   },
   {
     name: "Ember Shield",
-    manaCost: 18,
+    manaCost: 18, // Vortex 12 + Ember 6
     components: [{ ...availableComponents.find(c => c.id === "vortex")!, children: [
-      availableComponents.find(c => c.id === "ember")!,
+      { ...availableComponents.find(c => c.id === "ember")! },
     ]}],
   },
   {
     name: "Sand Shield",
-    manaCost: 16,
+    manaCost: 16, // Vortex 12 + Sand 4
     components: [{ ...availableComponents.find(c => c.id === "vortex")!, children: [
-      availableComponents.find(c => c.id === "sand")!,
+      { ...availableComponents.find(c => c.id === "sand")! },
     ]}],
   },
 ];
@@ -96,22 +96,22 @@ const shieldSpells = [
 const healingSpells = [
   {
     name: "Restoration",
-    manaCost: 38,
+    manaCost: 39, // Vortex 12 + Mist 5 + Crystal 7 + Ember 6 + Lightning 9
     components: [{ ...availableComponents.find(c => c.id === "vortex")!, children: [
-      availableComponents.find(c => c.id === "mist")!,
-      availableComponents.find(c => c.id === "crystal")!,
-      availableComponents.find(c => c.id === "ember")!,
-      availableComponents.find(c => c.id === "lightning")!,
+      { ...availableComponents.find(c => c.id === "mist")! },
+      { ...availableComponents.find(c => c.id === "crystal")! },
+      { ...availableComponents.find(c => c.id === "ember")! },
+      { ...availableComponents.find(c => c.id === "lightning")! },
     ]}],
   },
   {
     name: "Life Force",
-    manaCost: 40,
+    manaCost: 41, // Vortex 12 + Mist 5 + Crystal 7 + Ember 6 + Storm 11
     components: [{ ...availableComponents.find(c => c.id === "vortex")!, children: [
-      availableComponents.find(c => c.id === "mist")!,
-      availableComponents.find(c => c.id === "crystal")!,
-      availableComponents.find(c => c.id === "ember")!,
-      availableComponents.find(c => c.id === "storm")!,
+      { ...availableComponents.find(c => c.id === "mist")! },
+      { ...availableComponents.find(c => c.id === "crystal")! },
+      { ...availableComponents.find(c => c.id === "ember")! },
+      { ...availableComponents.find(c => c.id === "storm")! },
     ]}],
   },
 ];

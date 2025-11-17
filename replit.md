@@ -192,36 +192,44 @@ Preferred communication style: Simple, everyday language.
 - **Purpose**: Creates realistic AI behavior impression, making opponent feel more lifelike
 - Date implemented: November 17, 2025
 
-**Multi-Container Spell System with Shields, Healing & Creative Discovery**
-- Players and AI can cast 1-3 containers per turn combining offensive, defensive, and healing effects
-- **Component Effect Types**:
-  - **Damage Materials**: Flame, Ember, Magma (Fire), Stone, Boulder (Earth), Lightning, Storm (Air)
-  - **Shield Materials**: Ice, Crystal (Water), Wind (Air), Flame Guard (Fire)
-  - **Healing Materials**: Water, Mist (Water), Clay (Earth), Vital Breeze (Air)
-- **Spell Targeting Logic** (fixed November 17, 2025):
-  - Pure damage spells → target opponent
-  - Mixed spells with damage → target opponent
-  - Pure shield/healing spells → target self
-  - Previous bug: relied on propulsion component presence, now correctly uses effect type
-- **Creative Spell Combinations**:
+**Pattern-Based Shield and Healing System**
+- Shields and healing now require specific container + material combinations instead of standalone components
+- **Shield Pattern** (Vortex + specific materials):
+  - Vortex container + (Ice OR Ember OR Sand) = Shield spell
+  - Shield power = sum of child component mana costs
+  - Example: Vortex (12) + Ice (8) = 8 shield power, 20 mana total
+  - Targets self
+- **Healing Pattern** (Vortex + all 4 elements):
+  - Vortex container + all 4 elements via children
+  - Required: Mist (water) + Crystal (earth) + Ember (fire) + Lightning OR Storm (air)
+  - Healing power = sum of child component mana costs
+  - Example: Vortex (12) + Mist (5) + Crystal (7) + Ember (6) + Lightning (9) = 27 healing, 39 mana total
+  - Targets self
+  - Detection priority: Healing checked first, then shield, then damage
+- **Component Changes**:
+  - Removed single-purpose components: Wind, Vital Breeze, Flame Guard, Water, Clay
+  - Converted to neutral materials: Ice (water, multiplier 1.5), Mist (water), Crystal (earth, multiplier 2), Ember (fire)
+  - Added damage materials: Lightning (air, 9 mana, 4 damage), Storm (air, 11 mana, 5 damage), Boulder (earth, 10 mana, 5 damage), Magma (fire, 12 mana, 6 damage)
+- **Design Philosophy**:
+  - Air (Vortex) becomes structural element enabling shields/healing, not direct effect source
+  - Shields are simple (2 components: container + material)
+  - Healing is complex (5 components: container + 4 materials covering all elements)
+  - Encourages emergent gameplay through pattern discovery
+- **AI Strategy Updates**:
+  - Shield spells: Vortex + Ice/Ember/Sand templates
+  - Healing spells: Vortex + Mist + Crystal + Ember + Lightning/Storm templates
+  - AI adapts spell selection based on health/mana state
+- **Creative Spell Combinations** (unchanged):
   - Multi-element spells receive unique discovered names and +2 to +5 bonus damage
   - Examples: Fire+Water="Steam Blast", Fire+Earth="Lava Burst", Fire+Air="Firestorm"
-  - Displayed with purple highlighting in UI to emphasize discovery gameplay
+  - Displayed with purple highlighting in UI
   - Bonus damage stacks with specialization bonuses
-- **Combat Resolution Order** (server/gameLogic.ts):
+- **Combat Resolution Order** (unchanged):
   1. Shields applied to both player and opponent
   2. Damage dealt (reduced by active shields)
   3. Healing applied after damage
   4. Win conditions checked
-- **AI Multi-Container Strategy** (server/aiLogic.ts):
-  - Strategic mode (80%): Builds 1-3 containers based on health/mana/opponent state
-    - Low health → prioritize shields and healing
-    - High health → prioritize damage
-    - Balanced approach when moderate health
-  - Experimental mode (20%): Attempts creative multi-element combinations for discovery
-  - AI adapts container count to available mana
-- **UI Enhancements**:
-  - SpellBuilder displays damage/shield/healing stats separately
+- Date refactored: November 17, 2025
   - Discovered spell names shown prominently with purple highlight
   - Creative bonuses indicated in both builder and results modal
   - ResultsModal shows comprehensive breakdown: damage dealt, shields applied, healing received
