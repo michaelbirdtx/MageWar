@@ -64,9 +64,9 @@ All spells use a unified naming system with priority-based cascade: **Specific M
    - "Unknown Spell" if no patterns match
 
 **Example Material Combos (Damage Spells):**
-- **4-Material:** Boulder + Frost + Crystal + Stone → "Diamond Avalanche" (+6)
-- **3-Material:** Magma + Sulfur + Crystal → "Volcanic Crystal" (+5), Boulder + Frost + Crystal → "Crystal Glacier" (+5), Magma + Sulfur + Stone → "Magma Bomb" (+4), Boulder + Frost + Ice → "Frozen Avalanche" (+4)
-- **2-Material:** Frost + Ice → "Glacial Lance" (+3), Boulder + Stone → "Boulder Crash" (+3), Lightning + Storm → "Thunderstorm" (+3), Magma + Sulfur → "Sulfuric Blast" (+3)
+- **4-Material:** Boulder + Frost + Crystal + Stone → "Diamond Avalanche" (+6), Magma + Sand + Crystal + Stone → "Obsidian Cascade" (+6), Lightning + Storm + Sand + Crystal → "Fulgurite Tempest" (+6)
+- **3-Material:** Magma + Sulfur + Crystal → "Volcanic Crystal" (+5), Boulder + Frost + Crystal → "Crystal Glacier" (+5), Sand + Crystal + Stone → "Crystal Sandstorm" (+5), Sand + Crystal + Lightning → "Glass Shard Storm" (+5), Magma + Sand + Crystal → "Molten Glass" (+5), Magma + Sulfur + Stone → "Magma Bomb" (+4), Boulder + Frost + Ice → "Frozen Avalanche" (+4), Sand + Stone + Sulfur → "Volcanic Sand" (+4), Storm + Sand + Lightning → "Sandstorm Surge" (+4)
+- **2-Material:** Frost + Ice → "Glacial Lance" (+3), Boulder + Stone → "Boulder Crash" (+3), Lightning + Storm → "Thunderstorm" (+3), Magma + Sulfur → "Sulfuric Blast" (+3), Sand + Crystal → "Crystal Sand" (+3), Sand + Stone → "Stone Barrage" (+3), Sand + Lightning → "Fulgurite Strike" (+3), Sand + Magma → "Glass Blast" (+3), Sand + Storm → "Sandstorm" (+3)
 - **Cross-Element 2-Mat:** Magma + Frost → "Steam Eruption" (+4), Boulder + Ember → "Molten Rock" (+4), Lightning + Frost → "Frozen Lightning" (+4)
 - **Single-Material:** Lightning → "Lightning Strike" (+2), Boulder → "Boulder Throw" (+2), Storm → "Storm Surge" (+2), Magma → "Magma Blast" (+2)
 
