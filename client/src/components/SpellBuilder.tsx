@@ -130,7 +130,7 @@ export default function SpellBuilder({
       </div>
       
       <Card
-        className={`min-h-80 max-h-[calc(100vh-280px)] overflow-y-auto p-6 border-2 transition-all ${
+        className={`${components.length === 0 ? 'flex-1' : 'min-h-80'} max-h-[calc(100vh-280px)] overflow-y-auto p-6 border-2 transition-all ${
           components.length === 0 
             ? "border-dashed border-muted-foreground/30" 
             : "border-primary/50"
