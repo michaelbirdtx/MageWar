@@ -192,6 +192,30 @@ Preferred communication style: Simple, everyday language.
 - **Purpose**: Creates realistic AI behavior impression, making opponent feel more lifelike
 - Date implemented: November 17, 2025
 
+**Universal Targeting System**
+- Unified targeting rule applies to ALL spell types (damage, shields, healing)
+- **Targeting Logic**: `target = hasPropulsionInsideContainer ? "opponent" : "self"`
+  - Gust (propulsion component) inside container → targets opponent
+  - No Gust → targets self
+- **Applies to**:
+  - Damage spells: With Gust = attack opponent; Without = self-harm
+  - Shield spells: With Gust = shield opponent; Without = shield self
+  - Healing spells: With Gust = heal opponent; Without = heal self
+- **Combat Resolution (Option A behavior)**:
+  - ALL effects (damage/shield/heal) route to the specified target
+  - Shields reduce ALL incoming damage to that target, including damage from the same spell
+  - Example: Vortex + Ice + Gust (damage + shield targeting opponent)
+    - Adds damage to opponent's incoming damage pool
+    - Adds shield to opponent's defense pool
+    - Final damage = max(0, total_damage - shield)
+    - Result: Own shield can reduce own attack
+- **Implementation**:
+  - Client: calculateSpellPower returns target field based on propulsion detection
+  - Server: routes.ts manually routes each effect based on target field
+  - Both player and AI spells follow same targeting rules
+  - baseId field preserves component identity through cloning for pattern matching
+- Date implemented: November 17, 2025
+
 **Pattern-Based Shield and Healing System**
 - Shields and healing now require specific container + material combinations instead of standalone components
 - **Shield Pattern** (Vortex + specific materials):
