@@ -171,6 +171,7 @@ export function generateAISpell(
   // Strategic mode: Build up to MAX_SPELLS_PER_ROUND containers based on situation
   const containers: SpellComponent[] = [];
   let remainingMana = availableMana;
+  const usedComponentIds = new Set<string>(); // Track used base component IDs
 
   // Determine strategy based on health
   const healthRatio = aiHealth && playerHealth ? aiHealth / playerHealth : 1;
@@ -178,35 +179,39 @@ export function generateAISpell(
   const needsDefense = healthRatio < 0.8;
 
   // Priority 1: Always try to deal damage
-  const damageSpell = selectBestAffordableSpell(damageSpells, remainingMana, specialization);
+  const damageSpell = selectBestAffordableSpell(damageSpells, remainingMana, specialization, usedComponentIds);
   if (damageSpell && containers.length < MAX_SPELLS_PER_ROUND) {
     containers.push(...deepCloneComponents(damageSpell.components));
+    addComponentIdsToSet(damageSpell.components, usedComponentIds);
     remainingMana -= damageSpell.manaCost;
   }
 
   // Priority 2: Add healing if critically low health (and haven't reached max spells)
   if (needsHealing && remainingMana >= 20 && containers.length < MAX_SPELLS_PER_ROUND) {
-    const healSpell = selectBestAffordableSpell(healingSpells, remainingMana, specialization);
+    const healSpell = selectBestAffordableSpell(healingSpells, remainingMana, specialization, usedComponentIds);
     if (healSpell) {
       containers.push(...deepCloneComponents(healSpell.components));
+      addComponentIdsToSet(healSpell.components, usedComponentIds);
       remainingMana -= healSpell.manaCost;
     }
   }
 
-  // Priority 3: Add second damage spell if health is good and mana allows (max damage!)
-  if (!needsHealing && !needsDefense && remainingMana >= 25 && containers.length < MAX_SPELLS_PER_ROUND) {
-    const secondDamage = selectBestAffordableSpell(damageSpells, remainingMana, specialization);
+  // Priority 3: Add second damage spell if health is good and mana allows (AGGRESSIVE - lowered threshold from 25 to 20 mana)
+  if (!needsHealing && remainingMana >= 20 && containers.length < MAX_SPELLS_PER_ROUND) {
+    const secondDamage = selectBestAffordableSpell(damageSpells, remainingMana, specialization, usedComponentIds);
     if (secondDamage) {
       containers.push(...deepCloneComponents(secondDamage.components));
+      addComponentIdsToSet(secondDamage.components, usedComponentIds);
       remainingMana -= secondDamage.manaCost;
     }
   }
 
   // Priority 4: Add shield if in danger or have extra mana (and haven't reached max spells)
-  if ((needsDefense || remainingMana >= 25) && remainingMana >= 20 && containers.length < MAX_SPELLS_PER_ROUND) {
-    const shieldSpell = selectBestAffordableSpell(shieldSpells, remainingMana, specialization);
+  if ((needsDefense || remainingMana >= 16) && remainingMana >= 16 && containers.length < MAX_SPELLS_PER_ROUND) {
+    const shieldSpell = selectBestAffordableSpell(shieldSpells, remainingMana, specialization, usedComponentIds);
     if (shieldSpell) {
       containers.push(...deepCloneComponents(shieldSpell.components));
+      addComponentIdsToSet(shieldSpell.components, usedComponentIds);
       remainingMana -= shieldSpell.manaCost;
     }
   }
@@ -231,13 +236,47 @@ export function generateAISpell(
   return [];
 }
 
+// Helper to extract all component IDs from a spell template
+function getComponentIds(components: SpellComponent[]): Set<string> {
+  const ids = new Set<string>();
+  const traverse = (comp: SpellComponent) => {
+    ids.add(comp.baseId || comp.id);
+    comp.children?.forEach(traverse);
+  };
+  components.forEach(traverse);
+  return ids;
+}
+
+// Helper to add component IDs to the used set
+function addComponentIdsToSet(components: SpellComponent[], usedSet: Set<string>): void {
+  const ids = getComponentIds(components);
+  ids.forEach(id => usedSet.add(id));
+}
+
+// Helper to check if a spell uses any already-used components
+function hasComponentConflict(components: SpellComponent[], usedIds: Set<string>): boolean {
+  const spellIds = getComponentIds(components);
+  for (const id of Array.from(spellIds)) {
+    if (usedIds.has(id)) {
+      return true;
+    }
+  }
+  return false;
+}
+
 function selectBestAffordableSpell(
   spellList: Array<{ manaCost: number; components: SpellComponent[]; elements?: string[] }>,
   maxMana: number,
-  specialization?: "pyromancer" | "aquamancer"
+  specialization?: "pyromancer" | "aquamancer",
+  usedComponentIds?: Set<string>
 ): { manaCost: number; components: SpellComponent[]; elements?: string[] } | null {
-  // Filter affordable spells
-  const affordable = spellList.filter(s => s.manaCost <= maxMana);
+  // Filter affordable spells that don't reuse components
+  const affordable = spellList.filter(s => {
+    if (s.manaCost > maxMana) return false;
+    if (usedComponentIds && hasComponentConflict(s.components, usedComponentIds)) return false;
+    return true;
+  });
+  
   if (affordable.length === 0) return null;
 
   // Prioritize spells matching specialization by element composition
@@ -263,21 +302,27 @@ function generateExperimentalSpell(
 ): SpellComponent[] {
   // Experimental mode: Build creative/unusual combinations
   const allSpellTypes = [...damageSpells, ...shieldSpells, ...healingSpells];
-  const affordable = allSpellTypes.filter(s => s.manaCost <= availableMana);
-
-  if (affordable.length === 0) return [];
+  const containers: SpellComponent[] = [];
+  let remainingMana = availableMana;
+  const usedComponentIds = new Set<string>();
 
   // Randomly pick 1 to MAX_SPELLS_PER_ROUND containers
   const numContainers = Math.random() < 0.5 ? 1 : MAX_SPELLS_PER_ROUND;
-  const containers: SpellComponent[] = [];
-  let remainingMana = availableMana;
 
-  for (let i = 0; i < numContainers && affordable.length > 0 && containers.length < MAX_SPELLS_PER_ROUND; i++) {
+  for (let i = 0; i < numContainers && containers.length < MAX_SPELLS_PER_ROUND; i++) {
+    // Filter spells that are affordable and don't reuse components
+    const affordable = allSpellTypes.filter(s => {
+      if (s.manaCost > remainingMana) return false;
+      if (hasComponentConflict(s.components, usedComponentIds)) return false;
+      return true;
+    });
+    
+    if (affordable.length === 0) break;
+    
     const spell = affordable[Math.floor(Math.random() * affordable.length)];
-    if (spell.manaCost <= remainingMana) {
-      containers.push(...deepCloneComponents(spell.components));
-      remainingMana -= spell.manaCost;
-    }
+    containers.push(...deepCloneComponents(spell.components));
+    addComponentIdsToSet(spell.components, usedComponentIds);
+    remainingMana -= spell.manaCost;
   }
 
   if (containers.length > 0) {

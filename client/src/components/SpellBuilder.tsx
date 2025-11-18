@@ -64,6 +64,17 @@ export default function SpellBuilder({
   const specializationName =
     playerSpecialization === "pyromancer" ? "Pyromancer" : "Aquamancer";
 
+  // Helper function to get all used base IDs
+  const getUsedBaseIds = (comps: SpellComponent[]): Set<string> => {
+    const used = new Set<string>();
+    const traverse = (comp: SpellComponent) => {
+      used.add(comp.baseId || comp.id);
+      comp.children?.forEach(traverse);
+    };
+    comps.forEach(traverse);
+    return used;
+  };
+
   const handleDrop = (e: React.DragEvent, parentId?: string) => {
     e.preventDefault();
     e.stopPropagation();
@@ -75,6 +86,19 @@ export default function SpellBuilder({
     const originalId = newComponent.id;
     newComponent.id = `${originalId}-${Date.now()}`;
     newComponent.baseId = originalId; // Preserve original ID for pattern matching
+    
+    // Check if this component is already used
+    const usedIds = getUsedBaseIds(components);
+    if (usedIds.has(originalId)) {
+      toast({
+        title: "Component Already Used",
+        description: "Each component can only be used once per round. Choose a different component.",
+        variant: "destructive",
+      });
+      setDragOverIndex(null);
+      setDragOverChild(null);
+      return;
+    }
 
     if (parentId) {
       // Dropping inside a container

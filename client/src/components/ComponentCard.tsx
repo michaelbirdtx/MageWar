@@ -11,23 +11,39 @@ interface ComponentCardProps {
   component: SpellComponent;
   onDragStart?: (e: React.DragEvent, component: SpellComponent) => void;
   isDragging?: boolean;
+  isUsed?: boolean;
 }
 
 export default function ComponentCard({
   component,
   onDragStart,
   isDragging,
+  isUsed,
 }: ComponentCardProps) {
   const elementColor = ELEMENT_COLORS[component.element];
   const elementBg = ELEMENT_BG_COLORS[component.element];
   const elementBorder = ELEMENT_BORDER_COLORS[component.element];
+  
+  const handleDragStart = (e: React.DragEvent) => {
+    if (isUsed) {
+      e.preventDefault();
+      return;
+    }
+    onDragStart?.(e, component);
+  };
 
   return (
     <Card
-      draggable={!!onDragStart}
-      onDragStart={(e) => onDragStart?.(e, component)}
-      className={`p-4 cursor-grab active:cursor-grabbing transition-all hover-elevate ${elementBg} border-2 ${elementBorder} ${isDragging ? "opacity-60" : ""}`}
+      draggable={!!onDragStart && !isUsed}
+      onDragStart={handleDragStart}
+      className={`p-4 transition-all border-2 ${elementBorder} ${
+        isUsed 
+          ? "opacity-40 cursor-not-allowed grayscale" 
+          : "cursor-grab active:cursor-grabbing hover-elevate"
+      } ${elementBg} ${isDragging ? "opacity-60" : ""}`}
       data-testid={`card-component-${component.id}`}
+      data-is-used={isUsed ? "true" : "false"}
+      data-component-id={component.id}
     >
       <div className="flex flex-col gap-2">
         <div className="flex items-center gap-2">

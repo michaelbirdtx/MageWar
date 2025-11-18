@@ -580,6 +580,26 @@ export function validateSpell(
     return { valid: false, error: "Spell must have at least one component" };
   }
   
+  // Check for duplicate component usage (each component can only be used once per round)
+  const usedBaseIds = new Set<string>();
+  const checkDuplicates = (comps: SpellComponent[]): boolean => {
+    for (const comp of comps) {
+      const baseId = comp.baseId || comp.id;
+      if (usedBaseIds.has(baseId)) {
+        return false; // Duplicate found
+      }
+      usedBaseIds.add(baseId);
+      if (comp.children && !checkDuplicates(comp.children)) {
+        return false;
+      }
+    }
+    return true;
+  };
+  
+  if (!checkDuplicates(components)) {
+    return { valid: false, error: "Each component can only be used once per round" };
+  }
+  
   // Check for propulsion without container
   const hasPropulsionOutsideContainer = (comps: SpellComponent[], inContainer: boolean = false): boolean => {
     for (const comp of comps) {

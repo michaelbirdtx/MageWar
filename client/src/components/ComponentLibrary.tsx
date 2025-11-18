@@ -7,9 +7,10 @@ import { Flame, Droplet, Mountain, Wind } from "lucide-react";
 
 interface ComponentLibraryProps {
   onComponentSelect: (component: SpellComponent) => void;
+  usedComponentIds?: Set<string>;
 }
 
-export default function ComponentLibrary({ onComponentSelect }: ComponentLibraryProps) {
+export default function ComponentLibrary({ onComponentSelect, usedComponentIds = new Set() }: ComponentLibraryProps) {
   const [activeElement, setActiveElement] = useState<ElementType | "all">("all");
   const [draggingId, setDraggingId] = useState<string | null>(null);
   
@@ -18,6 +19,10 @@ export default function ComponentLibrary({ onComponentSelect }: ComponentLibrary
     : availableComponents.filter(c => c.element === activeElement);
   
   const handleDragStart = (e: React.DragEvent, component: SpellComponent) => {
+    if (usedComponentIds.has(component.id)) {
+      e.preventDefault();
+      return;
+    }
     setDraggingId(component.id);
     e.dataTransfer.effectAllowed = "copy";
     e.dataTransfer.setData("application/json", JSON.stringify(component));
@@ -56,6 +61,7 @@ export default function ComponentLibrary({ onComponentSelect }: ComponentLibrary
                   component={component}
                   onDragStart={handleDragStart}
                   isDragging={draggingId === component.id}
+                  isUsed={usedComponentIds.has(component.id)}
                 />
               </div>
             ))}

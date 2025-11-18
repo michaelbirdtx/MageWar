@@ -21,6 +21,17 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 
+// Helper function to get all used base IDs from components
+const getUsedComponentIds = (comps: SpellComponent[]): Set<string> => {
+  const used = new Set<string>();
+  const traverse = (comp: SpellComponent) => {
+    used.add(comp.baseId || comp.id);
+    comp.children?.forEach(traverse);
+  };
+  comps.forEach(traverse);
+  return used;
+};
+
 export default function GamePage() {
   const [showTutorial, setShowTutorial] = useState(false);
   const [isDark, setIsDark] = useState(false);
@@ -236,7 +247,10 @@ export default function GamePage() {
         <div className="max-w-[100rem] mx-auto grid grid-cols-1 lg:grid-cols-5 gap-6">
           {/* Component Library */}
           <div className="lg:col-span-1 min-w-0">
-            <ComponentLibrary onComponentSelect={(comp) => console.log("Selected:", comp)} />
+            <ComponentLibrary 
+              onComponentSelect={(comp) => console.log("Selected:", comp)}
+              usedComponentIds={getUsedComponentIds(spellComponents)}
+            />
           </div>
           
           {/* Spell Builder */}
