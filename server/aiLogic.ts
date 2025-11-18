@@ -32,13 +32,24 @@ const availableComponents: SpellComponent[] = [
 // Individual container templates for building multi-spell combinations
 // Names are generated dynamically by determineEffectNameBackend() based on elements
 const damageSpells = [
-  // Fire-based spells (favored by Pyromancers)
+  // Fire-based spells (favored by Pyromancers) - optimized 4-component builds
   {
-    manaCost: 38, // Air Sphere 10 + Magma 12 + Sulfur 8 + Gust 8 = 38
+    manaCost: 44, // Vortex 12 + Magma 12 + Ember 6 + Stone 6 + Gust 8 = 44
+    elements: ["air", "fire", "earth"],
+    components: [{ ...availableComponents.find(c => c.id === "vortex")!, children: [
+      { ...availableComponents.find(c => c.id === "magma")! },  // 6 base damage
+      { ...availableComponents.find(c => c.id === "ember")! },  // 2 base damage
+      { ...availableComponents.find(c => c.id === "stone")! },  // 3x multiplier = 24 base, 28.8 with Pyro bonus
+      { ...availableComponents.find(c => c.id === "gust")! },
+    ]}],
+  },
+  {
+    manaCost: 47, // Air Sphere 10 + Magma 12 + Flame 10 + Crystal 7 + Gust 8 = 47
     elements: ["air", "fire", "earth"],
     components: [{ ...availableComponents.find(c => c.id === "air-sphere")!, children: [
-      { ...availableComponents.find(c => c.id === "magma")! },  // 6 base damage
-      { ...availableComponents.find(c => c.id === "sulfur")! }, // 4x multiplier
+      { ...availableComponents.find(c => c.id === "magma")! },   // 6 base damage
+      { ...availableComponents.find(c => c.id === "flame")! },   // 3 base damage
+      { ...availableComponents.find(c => c.id === "crystal")! }, // 2x multiplier = 18 base, 21.6 with Pyro bonus
       { ...availableComponents.find(c => c.id === "gust")! },
     ]}],
   },
@@ -48,16 +59,7 @@ const damageSpells = [
     components: [{ ...availableComponents.find(c => c.id === "air-sphere")!, children: [
       { ...availableComponents.find(c => c.id === "flame")! },  // 3 base damage
       { ...availableComponents.find(c => c.id === "ember")! },  // 2 base damage
-      { ...availableComponents.find(c => c.id === "stone")! },  // 3x multiplier
-      { ...availableComponents.find(c => c.id === "gust")! },
-    ]}],
-  },
-  {
-    manaCost: 42, // Vortex 12 + Magma 12 + Flame 10 + Gust 8 = 42
-    elements: ["air", "fire"],
-    components: [{ ...availableComponents.find(c => c.id === "vortex")!, children: [
-      { ...availableComponents.find(c => c.id === "magma")! },  // 6 base damage
-      { ...availableComponents.find(c => c.id === "flame")! },  // 3 base damage
+      { ...availableComponents.find(c => c.id === "stone")! },  // 3x multiplier = 15 base, 18 with Pyro bonus
       { ...availableComponents.find(c => c.id === "gust")! },
     ]}],
   },
