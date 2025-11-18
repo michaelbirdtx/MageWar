@@ -91,9 +91,9 @@ Materials are evaluated **within each container independently**. Multi-container
 AI uses predefined component combinations. Names are generated dynamically per-container like player spells:
 
 **Fire-Focused (Pyromancer):**
-- 38 mana: Air Sphere [Gust, Magma, Sulfur] → "Sulfuric Blast" (+3 bonus, ~26 dmg with spec)
-- 40 mana: Air Sphere [Gust, Flame, Ember, Stone] → "Scorching Boulder" (+4 bonus if all 3 in container)
-- 42 mana: Air Sphere [Gust, Magma, Flame] → "Volcanic Eruption" (+3 bonus, ~11 dmg with spec)
+- 44 mana: Vortex [Gust, Magma, Ember, Stone] → "Molten Stone" (+4 bonus, 24 base → 28.8 dmg with spec)
+- 47 mana: Air Sphere [Gust, Magma, Flame, Crystal] → "Volcanic Crystal" (+5 bonus, 18 base → 21.6 dmg with spec)
+- 40 mana: Air Sphere [Gust, Flame, Ember, Stone] → "Scorching Boulder" (+4 bonus, 15 base → 18 dmg with spec)
 
 **Water-Focused (Aquamancer):**
 - 46 mana: Air Sphere [Gust, Boulder, Frost, Crystal] → "Crystal Glacier" (+5 bonus, ~17 dmg with spec)
