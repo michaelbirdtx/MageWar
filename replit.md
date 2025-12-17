@@ -2,7 +2,7 @@
 
 ## Overview
 
-Mage War is a turn-based spell-crafting game where players build custom spells by combining elemental components (Fire, Water, Earth, Air) and battle against an AI opponent. The game features a drag-and-drop interface for assembling spell components into powerful magical attacks, with tactical depth through mana management and elemental synergies. The application is a full-stack web game with real-time spell crafting, combat animations, and AI-powered opponent behavior.
+Mage War is a turn-based spell-crafting game where players build custom spells by combining elemental components (Fire, Water, Earth, Air) and battle against an AI opponent. The game features a **draw-based resource system** (similar to Dominoes/Rummikub) where players randomly draw material components from a shuffled pool each round. The drag-and-drop interface allows assembling spell components into powerful magical attacks, with tactical depth through hand management and elemental synergies. The application is a full-stack web game with real-time spell crafting, combat animations, and AI-powered opponent behavior.
 
 ## User Preferences
 
@@ -21,7 +21,7 @@ Preferred communication style: Simple, everyday language.
 *   **Runtime & Server**: Node.js with Express.js REST API, TypeScript.
 *   **API Design**: RESTful endpoints for game state (`/api/game/new`, `/api/game/:sessionId`, `/api/game/:sessionId/cast`).
 *   **Game Logic**: Server-authoritative state, spell validation, damage calculation, AI opponent with strategic spell-building.
-*   **Simultaneous Spell Reveal**: Player and AI spells are locked in and calculated simultaneously, with results displayed side-by-side in the Results Modal. The modal shows all spell effects (Damage in red, Shield in blue, Healing in green) for both player and AI, with creative material bonuses highlighted. Mana regenerates after both spells resolve.
+*   **Simultaneous Spell Reveal**: Player and AI spells are locked in and calculated simultaneously, with results displayed side-by-side in the Results Modal. The modal shows all spell effects (Damage in red, Shield in blue, Healing in green) for both player and AI. After spells resolve, new components are drawn equal to the number of materials used.
 
 ### Data Storage
 
@@ -37,6 +37,16 @@ Preferred communication style: Simple, everyday language.
 *   **AI Opponent Strategy**: Pre-defined, priority-based spell strategies with adjustable difficulty.
 *   **Server-Side Game Logic**: All combat calculations and validation occur on the server to prevent cheating.
 *   **Character Creation & Validation**: Players create custom mages with configurable Intellect, Stamina, and Wisdom, and a specialization (Pyromancer/Aquamancer). Comprehensive client and server-side validation ensures attribute integrity (min/max per attribute, max total).
+*   **Draw-Based Resource System**: 
+    - **No Mana**: The game uses a hand-based system instead of mana costs.
+    - **Starting Hand**: Each mage draws `ceil(Wisdom / 2)` material components at game start.
+    - **Always Available**: Containers (Air Sphere, Vortex) and Gust are always available and not drawn from the pool.
+    - **Replenishment**: After each round, new components are drawn equal to the number of materials used.
+    - **Component Pool**: Materials are shuffled with rarity-based quantities (Common: 3x, Uncommon: 2x, Rare: 1x).
+*   **Attribute System**:
+    - **Intellect**: Adds flat damage bonus to all damage spells (+1 per 2 Intellect points).
+    - **Stamina**: Determines max health (50 + Stamina × 10).
+    - **Wisdom**: Determines starting hand size (ceil(Wisdom / 2) materials).
 *   **Win Condition System**: Atomic simultaneous damage resolution with `applySimultaneousDamage` and `checkGameEnd` functions to determine victory, defeat, or tie states (`building` | `combat` | `victory` | `defeat` | `tie`). Frontend dialogs display outcomes.
 *   **AI Thinking Animation**: Visual feedback (3-6 second delay, AI card turns green) simulates AI "thinking" before locking in its spell choice.
 *   **Universal Targeting System**: All spell effects (damage, shields, healing) target the opponent if a 'Gust' (propulsion) component is present within the spell's container, otherwise they target self. Shields reduce all incoming damage to the target.
@@ -107,9 +117,9 @@ AI uses predefined component combinations. Names are generated dynamically per-c
 ### Specialization & Strategy
 - AI filters spells by element composition: fire for Pyromancers, water for Aquamancers
 - Priority: Damage → Heal (if health < 60%) → Second damage (if health > 80%) → Shield
-- Specialization bonuses: +20% damage, -20% mana cost on matching elements
-- AI can cast 2 spells per turn when healthy, leveraging the multi-spell system
-- Material combo bonuses stack with specialization bonuses for powerful synergies
+- Specialization bonuses: +20% damage on matching element spells
+- AI uses weighted evaluation to select optimal spell combinations from drawn hand
+- AI can cast up to 2 spells per turn, selecting combinations that maximize damage/utility from available materials
 
 ## External Dependencies
 

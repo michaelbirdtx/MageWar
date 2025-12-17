@@ -33,25 +33,23 @@ export interface SpellComponent {
   type: "container" | "material" | "action";
   role: ComponentRole;
   description: string;
-  manaCost: number;
   baseDamage: number;
   damageMultiplier: number;
   effectType?: EffectType;
   shieldPower?: number;
   healingPower?: number;
   children?: SpellComponent[];
+  rarity?: "common" | "uncommon" | "rare"; // For weighted draw system
 }
 
 export interface Spell {
   id: string;
   name: string;
   components: SpellComponent[];
-  totalManaCost: number;
   damage: number;
   shieldPower: number;
   healingPower: number;
   effect?: string;
-  bonus?: number;
 }
 
 export interface Mage {
@@ -59,14 +57,12 @@ export interface Mage {
   name: string;
   health: number;
   maxHealth: number;
-  mana: number;
-  maxMana: number;
-  manaRegen: number;
-  intellect: number;
+  intellect: number; // Now adds bonus damage to spells
   stamina: number;
-  wisdom: number;
+  wisdom: number; // Determines starting hand size (wisdom / 2, rounded up)
   specialization: Specialization;
   isPlayer: boolean;
+  hand: string[]; // Component IDs available to use this round
 }
 
 export interface GameState {
@@ -78,4 +74,6 @@ export interface GameState {
   aiSpellLocked: boolean;
   lockedPlayerSpell: Spell | null;
   lockedAiSpell: Spell | null;
+  componentPool: string[]; // All drawable component IDs (shuffled bag)
+  round: number;
 }

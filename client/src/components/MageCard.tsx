@@ -1,7 +1,7 @@
 import { Mage } from "@shared/schema";
 import { Card } from "@/components/ui/card";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { Heart, Sparkles, Flame, Droplet, Brain, Activity, Lightbulb } from "lucide-react";
+import { Heart, Flame, Droplet, Brain, Activity, Lightbulb, Package } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
@@ -14,7 +14,7 @@ interface MageCardProps {
 
 export default function MageCard({ mage, showTurnIndicator, spellLocked }: MageCardProps) {
   const healthPercent = (mage.health / mage.maxHealth) * 100;
-  const manaPercent = (mage.mana / mage.maxMana) * 100;
+  const handSize = mage.hand?.length || 0;
   const initials = mage.name.split(" ").map(n => n[0]).join("").toUpperCase();
   
   const specializationIcon = mage.specialization === "pyromancer" ? (
@@ -61,7 +61,7 @@ export default function MageCard({ mage, showTurnIndicator, spellLocked }: MageC
               <span className="font-semibold">{mage.intellect}</span>
             </div>
           </TooltipTrigger>
-          <TooltipContent>Intellect (Max Mana)</TooltipContent>
+          <TooltipContent>Intellect (+{mage.intellect} Damage Bonus)</TooltipContent>
         </Tooltip>
         
         <Tooltip>
@@ -81,7 +81,7 @@ export default function MageCard({ mage, showTurnIndicator, spellLocked }: MageC
               <span className="font-semibold">{mage.wisdom}</span>
             </div>
           </TooltipTrigger>
-          <TooltipContent>Wisdom (Mana Regen: +{mage.manaRegen}/turn)</TooltipContent>
+          <TooltipContent>Wisdom (Starting Hand Size: {Math.ceil(mage.wisdom / 2)})</TooltipContent>
         </Tooltip>
       </div>
       
@@ -102,14 +102,13 @@ export default function MageCard({ mage, showTurnIndicator, spellLocked }: MageC
         <div>
           <div className="flex items-center justify-between mb-1">
             <div className="flex items-center gap-1 text-sm">
-              <Sparkles className="w-4 h-4 text-primary" />
-              <span className="font-medium">Mana</span>
+              <Package className="w-4 h-4 text-primary" />
+              <span className="font-medium">Hand</span>
             </div>
-            <span className="text-sm font-semibold" data-testid={`text-mana-${mage.id}`}>
-              {mage.mana} / {mage.maxMana}
+            <span className="text-sm font-semibold" data-testid={`text-hand-${mage.id}`}>
+              {handSize} components
             </span>
           </div>
-          <Progress value={manaPercent} className="h-2 bg-muted [&>div]:bg-primary" />
         </div>
       </div>
       

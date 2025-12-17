@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { SpellComponent, GameState, Specialization } from "@shared/schema";
 import ComponentLibrary from "@/components/ComponentLibrary";
 import SpellBuilder from "@/components/SpellBuilder";
@@ -9,7 +9,8 @@ import ResultsModal from "@/components/ResultsModal";
 import { Button } from "@/components/ui/button";
 import { HelpCircle, Moon, Sun, RotateCcw } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { createNewGame, castSpell, executeAITurn, deleteGame, CharacterData } from "@/lib/gameApi";
+import { createNewGame, castSpell, deleteGame, CharacterData } from "@/lib/gameApi";
+import { drawableComponents } from "@/lib/gameData";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -32,6 +33,23 @@ const getUsedComponentIds = (comps: SpellComponent[]): Set<string> => {
   return used;
 };
 
+// Convert hand IDs to full SpellComponent objects with unique instance IDs
+const getHandComponents = (handIds: string[]): SpellComponent[] => {
+  const componentMap = new Map(drawableComponents.map(c => [c.id, c]));
+  return handIds
+    .map((id, index) => {
+      const base = componentMap.get(id);
+      if (!base) return undefined;
+      // Create a unique instance with baseId for rule enforcement
+      return {
+        ...base,
+        id: `${id}-${index}`, // Unique ID for each drawn instance
+        baseId: id, // Original ID for matching and validation
+      };
+    })
+    .filter((c): c is SpellComponent => c !== undefined);
+};
+
 export default function GamePage() {
   const [showTutorial, setShowTutorial] = useState(false);
   const [isDark, setIsDark] = useState(false);
@@ -48,8 +66,8 @@ export default function GamePage() {
   const [aiThinkingLock, setAiThinkingLock] = useState(false);
   const [showResultsModal, setShowResultsModal] = useState(false);
   const [roundResults, setRoundResults] = useState<{
-    playerResult: { effect: string; damage: number; shieldPower?: number; healingPower?: number; bonus?: number } | null;
-    aiResult: { effect: string; damage: number; shieldPower?: number; healingPower?: number; bonus?: number } | null;
+    playerResult: { effect: string; damage: number; shieldPower?: number; healingPower?: number } | null;
+    aiResult: { effect: string; damage: number; shieldPower?: number; healingPower?: number } | null;
   } | null>(null);
   const { toast } = useToast();
   
@@ -141,14 +159,12 @@ export default function GamePage() {
             damage: response.playerSpellResult.damage,
             shieldPower: response.playerSpellResult.shieldPower,
             healingPower: response.playerSpellResult.healingPower,
-            bonus: response.playerSpellResult.bonus,
           },
           aiResult: response.aiSpellResult ? {
             effect: response.aiSpellResult.effect,
             damage: response.aiSpellResult.damage,
             shieldPower: response.aiSpellResult.shieldPower,
             healingPower: response.aiSpellResult.healingPower,
-            bonus: response.aiSpellResult.bonus,
           } : null,
         });
         setShowResultsModal(true);
@@ -250,6 +266,7 @@ export default function GamePage() {
             <ComponentLibrary 
               onComponentSelect={(comp) => console.log("Selected:", comp)}
               usedComponentIds={getUsedComponentIds(spellComponents)}
+              playerHand={getHandComponents(gameState?.player.hand || [])}
             />
           </div>
           
@@ -260,8 +277,8 @@ export default function GamePage() {
               onComponentsChange={setSpellComponents}
               onCastSpell={handleCastSpell}
               onClearSpell={() => setSpellComponents([])}
-              playerMana={gameState.player.mana}
               playerSpecialization={gameState.player.specialization}
+              playerIntellect={gameState.player.intellect}
             />
           </div>
           

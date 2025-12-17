@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { SpellComponent, ElementType } from "@shared/schema";
-import { availableComponents } from "@/lib/gameData";
+import { alwaysAvailableComponents } from "@/lib/gameData";
 import ComponentCard from "./ComponentCard";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Flame, Droplet, Mountain, Wind } from "lucide-react";
@@ -8,18 +8,22 @@ import { Flame, Droplet, Mountain, Wind } from "lucide-react";
 interface ComponentLibraryProps {
   onComponentSelect: (component: SpellComponent) => void;
   usedComponentIds?: Set<string>;
+  playerHand?: SpellComponent[];
 }
 
-export default function ComponentLibrary({ onComponentSelect, usedComponentIds = new Set() }: ComponentLibraryProps) {
+export default function ComponentLibrary({ onComponentSelect, usedComponentIds = new Set(), playerHand = [] }: ComponentLibraryProps) {
   const [activeElement, setActiveElement] = useState<ElementType | "all">("all");
   const [draggingId, setDraggingId] = useState<string | null>(null);
   
+  // Combine always-available (containers, Gust) with player's drawn hand
+  const allAvailable = [...alwaysAvailableComponents, ...playerHand];
+  
   const filteredComponents = activeElement === "all" 
-    ? availableComponents 
-    : availableComponents.filter(c => c.element === activeElement);
+    ? allAvailable 
+    : allAvailable.filter(c => c.element === activeElement);
   
   const handleDragStart = (e: React.DragEvent, component: SpellComponent) => {
-    if (usedComponentIds.has(component.id)) {
+    if (usedComponentIds.has(component.baseId || component.id)) {
       e.preventDefault();
       return;
     }
@@ -34,7 +38,9 @@ export default function ComponentLibrary({ onComponentSelect, usedComponentIds =
   
   return (
     <div className="flex flex-col gap-4 h-full">
-      <h2 className="font-serif font-semibold text-xl" data-testid="text-library-title">Component Library</h2>
+      <h2 className="font-serif font-semibold text-xl" data-testid="text-library-title">
+        Your Hand ({playerHand.length} materials + {alwaysAvailableComponents.length} always available)
+      </h2>
       
       <Tabs defaultValue="all" onValueChange={(v) => setActiveElement(v as ElementType | "all")}>
         <TabsList className="grid grid-cols-5 w-full">
@@ -61,7 +67,7 @@ export default function ComponentLibrary({ onComponentSelect, usedComponentIds =
                   component={component}
                   onDragStart={handleDragStart}
                   isDragging={draggingId === component.id}
-                  isUsed={usedComponentIds.has(component.id)}
+                  isUsed={usedComponentIds.has(component.baseId || component.id)}
                 />
               </div>
             ))}

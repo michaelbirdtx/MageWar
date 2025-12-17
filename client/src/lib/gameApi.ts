@@ -15,8 +15,7 @@ export interface CastSpellResponse {
     damage: number;
     shieldPower?: number;
     healingPower?: number;
-    bonus?: number;
-    manaCost: number;
+    componentsUsed?: number;
     target: "self" | "opponent";
   };
   aiSpellResult?: {
@@ -24,23 +23,10 @@ export interface CastSpellResponse {
     damage: number;
     shieldPower?: number;
     healingPower?: number;
-    bonus?: number;
-    manaCost: number;
+    componentsUsed?: number;
     target: "self" | "opponent";
     components: SpellComponent[];
   } | null;
-}
-
-export interface AITurnResponse {
-  gameState: GameState;
-  aiSpell?: {
-    effect: string;
-    damage: number;
-    manaCost: number;
-    target: "self" | "opponent";
-    components: SpellComponent[];
-  };
-  aiPassed?: boolean;
 }
 
 export async function createNewGame(characterData: CharacterData): Promise<{ sessionId: string; gameState: GameState }> {
@@ -82,14 +68,14 @@ export async function castSpell(sessionId: string, components: SpellComponent[])
   return response.json();
 }
 
-export async function executeAITurn(sessionId: string): Promise<AITurnResponse> {
-  const response = await fetch(`/api/game/${sessionId}/ai-turn`, {
+export async function advanceToNextRound(sessionId: string): Promise<{ gameState: GameState }> {
+  const response = await fetch(`/api/game/${sessionId}/next-round`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
   });
   
   if (!response.ok) {
-    throw new Error("Failed to execute AI turn");
+    throw new Error("Failed to advance to next round");
   }
   
   return response.json();

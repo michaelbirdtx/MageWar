@@ -22,8 +22,8 @@ interface SpellBuilderProps {
   onComponentsChange: (components: SpellComponent[]) => void;
   onCastSpell: () => void;
   onClearSpell: () => void;
-  playerMana: number;
   playerSpecialization: Specialization;
+  playerIntellect: number;
 }
 
 export default function SpellBuilder({
@@ -31,33 +31,30 @@ export default function SpellBuilder({
   onComponentsChange,
   onCastSpell,
   onClearSpell,
-  playerMana,
   playerSpecialization,
+  playerIntellect,
 }: SpellBuilderProps) {
   const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
   const [dragOverChild, setDragOverChild] = useState<string | null>(null);
   const { toast } = useToast();
 
-  const spellStats = calculateSpellPower(components);
+  const spellStats = calculateSpellPower(components, playerIntellect);
   const baseDamage = spellStats.damage;
-  const baseManaCost = spellStats.manaCost;
   const shieldPower = spellStats.shieldPower;
   const healingPower = spellStats.healingPower;
-  const bonus = spellStats.bonus;
+  const componentsUsed = spellStats.componentsUsed;
   const perSpellBreakdown = spellStats.perSpellBreakdown;
 
   // Apply specialization bonus
-  const { damage, manaCost, damageBonus, costReduction } =
+  const { damage, damageBonus } =
     applySpecializationBonus(
       components,
       baseDamage,
-      baseManaCost,
       playerSpecialization,
     );
 
   const { effect, target, validationError } = spellStats;
-  const canCast =
-    components.length > 0 && manaCost <= playerMana && !validationError;
+  const canCast = components.length > 0 && !validationError;
 
   const hasMultipleSpells = perSpellBreakdown.length > 1;
 
@@ -83,13 +80,13 @@ export default function SpellBuilder({
     if (!componentData) return;
 
     const newComponent: SpellComponent = JSON.parse(componentData);
-    const originalId = newComponent.id;
-    newComponent.id = `${originalId}-${Date.now()}`;
-    newComponent.baseId = originalId; // Preserve original ID for pattern matching
+    const originalBaseId = newComponent.baseId || newComponent.id; // Use existing baseId or current id
+    newComponent.id = `${originalBaseId}-${Date.now()}`;
+    newComponent.baseId = originalBaseId; // Preserve original ID for pattern matching
     
     // Check if this component is already used
     const usedIds = getUsedBaseIds(components);
-    if (usedIds.has(originalId)) {
+    if (usedIds.has(originalBaseId)) {
       toast({
         title: "Component Already Used",
         description: "Each component can only be used once per round. Choose a different component.",
@@ -286,28 +283,16 @@ export default function SpellBuilder({
               </div>
             )}
           <div className="flex flex-col gap-3">
-            {bonus > 0 && (
-              <div className="p-2 bg-purple-500/10 border border-purple-500/20 rounded-md">
-                <p className="text-sm font-bold text-purple-600 dark:text-purple-400 text-center">
-                  ✨ Discovered: {effect} ✨
-                </p>
-                <p className="text-xs text-purple-700 dark:text-purple-300 text-center mt-1">
-                  +{bonus} Creative Combination Bonus!
+            {effect !== "Unknown Spell" && !hasMultipleSpells && (
+              <div className="text-center">
+                <p
+                  className="text-sm font-semibold text-primary"
+                  data-testid="text-spell-effect"
+                >
+                  {effect}
                 </p>
               </div>
             )}
-            {bonus === 0 &&
-              effect !== "Unknown Spell" &&
-              !hasMultipleSpells && (
-                <div className="text-center">
-                  <p
-                    className="text-sm font-semibold text-primary"
-                    data-testid="text-spell-effect"
-                  >
-                    {effect}
-                  </p>
-                </div>
-              )}
 
             {/* Multi-spell breakdown view */}
             {hasMultipleSpells && (
@@ -383,11 +368,6 @@ export default function SpellBuilder({
                           (+{damageBonus})
                         </span>
                       )}
-                      {bonus > 0 && (
-                        <span className="text-xs ml-1 text-purple-600 dark:text-purple-400">
-                          (+{bonus})
-                        </span>
-                      )}
                     </p>
                   </div>
                 )}
@@ -423,38 +403,26 @@ export default function SpellBuilder({
                   </p>
                 </div>
                 <div>
-                  <p className="text-xs text-muted-foreground">Mana Cost</p>
+                  <p className="text-xs text-muted-foreground">Components</p>
                   <p
-                    className={`font-semibold text-sm ${manaCost > playerMana ? "text-destructive" : "text-primary"}`}
-                    data-testid="text-spell-cost"
+                    className="font-semibold text-sm text-primary"
+                    data-testid="text-components-used"
                   >
-                    {manaCost}
-                    {costReduction > 0 && (
-                      <span className="text-xs ml-1 text-green-600 dark:text-green-400">
-                        (-{costReduction})
-                      </span>
-                    )}
+                    {componentsUsed} used
                   </p>
                 </div>
               </div>
             )}
 
-            {/* Total mana cost for multi-spell */}
+            {/* Total components for multi-spell */}
             {hasMultipleSpells && (
               <div className="pt-2 border-t border-border">
                 <div className="flex justify-between items-center">
                   <p className="text-sm font-semibold text-muted-foreground">
-                    Total Mana Cost
+                    Total Components Used
                   </p>
-                  <p
-                    className={`text-lg font-bold ${manaCost > playerMana ? "text-destructive" : "text-primary"}`}
-                  >
-                    {manaCost}
-                    {costReduction > 0 && (
-                      <span className="text-xs ml-1 text-green-600 dark:text-green-400">
-                        (-{costReduction})
-                      </span>
-                    )}
+                  <p className="text-lg font-bold text-primary">
+                    {componentsUsed}
                   </p>
                 </div>
               </div>
@@ -518,7 +486,7 @@ function ComponentInBuilder({
           </p>
         </div>
         <span className="text-xs font-bold text-primary">
-          {component.manaCost} Mana
+          DMG: {component.baseDamage}
         </span>
         <Button
           variant="ghost"
@@ -557,7 +525,7 @@ function ComponentInBuilder({
                     {child.name}
                   </span>
                   <span className="text-xs ml-auto text-muted-foreground">
-                    {child.manaCost} Mana
+                    DMG: {child.baseDamage}
                   </span>
                   <Button
                     variant="ghost"

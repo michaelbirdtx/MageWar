@@ -8,10 +8,10 @@ import {
   applyCombatDamage,
   applySimultaneousDamage,
   applyCombatResolution,
-  consumeMana,
-  regenerateMana,
-  switchTurn,
   checkGameEnd,
+  replenishHand,
+  removeUsedFromHand,
+  nextRound,
   CharacterAttributes
 } from "./gameLogic";
 import { generateAISpell, getAIDifficulty } from "./aiLogic";
@@ -125,14 +125,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: "Game is over" });
       }
       
-      // Validate player spell
-      const validation = validateSpell(components, gameState.player.mana, gameState.player.specialization);
+      // Validate player spell against their hand
+      const validation = validateSpell(components, gameState.player.hand || []);
       if (!validation.valid) {
         return res.status(400).json({ error: validation.error });
       }
       
-      // Calculate player spell effects
-      const playerStats = calculateSpellStats(components, gameState.player.specialization);
+      // Calculate player spell effects (include intellect for damage bonus)
+      const playerStats = calculateSpellStats(components, gameState.player.specialization, gameState.player.intellect);
+      
+      // Collect materials used by player
+      const playerMaterialsUsed: string[] = [];
+      const collectMaterials = (comps: SpellComponent[]) => {
+        for (const comp of comps) {
+          if (comp.role !== "container" && comp.role !== "propulsion") {
+            playerMaterialsUsed.push(comp.baseId || comp.id);
+          }
+          if (comp.children) collectMaterials(comp.children);
+        }
+      };
+      collectMaterials(components);
       
       // Lock in player spell
       gameState.playerSpellLocked = true;
@@ -140,28 +152,37 @@ export async function registerRoutes(app: Express): Promise<Server> {
         id: `player-spell-${Date.now()}`,
         name: playerStats.effect,
         components,
-        totalManaCost: playerStats.manaCost,
         damage: playerStats.damage,
         shieldPower: playerStats.shieldPower,
         healingPower: playerStats.healingPower,
         effect: playerStats.effect,
-        bonus: playerStats.bonus,
       };
       
-      // Generate AI spell immediately
-      const difficulty = getAIDifficulty(gameState.opponent.health, gameState.player.health);
+      // Generate AI spell from its hand
       const aiComponents = generateAISpell(
-        gameState.opponent.mana, 
-        difficulty, 
+        gameState.opponent.hand || [],
         gameState.opponent.specialization,
         gameState.opponent.health,
-        gameState.player.health
+        gameState.player.health,
+        gameState.opponent.intellect
       );
       
       let aiStats;
+      let aiMaterialsUsed: string[] = [];
       if (aiComponents.length > 0) {
         // Calculate AI spell effects
-        aiStats = calculateSpellStats(aiComponents, gameState.opponent.specialization);
+        aiStats = calculateSpellStats(aiComponents, gameState.opponent.specialization, gameState.opponent.intellect);
+        
+        // Collect materials used by AI
+        const collectAIMaterials = (comps: SpellComponent[]) => {
+          for (const comp of comps) {
+            if (comp.role !== "container" && comp.role !== "propulsion") {
+              aiMaterialsUsed.push(comp.baseId || comp.id);
+            }
+            if (comp.children) collectAIMaterials(comp.children);
+          }
+        };
+        collectAIMaterials(aiComponents);
         
         // Lock in AI spell
         gameState.aiSpellLocked = true;
@@ -169,31 +190,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
           id: `ai-spell-${Date.now()}`,
           name: aiStats.effect,
           components: aiComponents,
-          totalManaCost: aiStats.manaCost,
           damage: aiStats.damage,
           shieldPower: aiStats.shieldPower,
           healingPower: aiStats.healingPower,
           effect: aiStats.effect,
-          bonus: aiStats.bonus,
         };
       }
       
-      // Consume mana for both spells
-      gameState.player = consumeMana(gameState.player, playerStats.manaCost);
-      if (aiComponents.length > 0 && aiStats) {
-        gameState.opponent = consumeMana(gameState.opponent, aiStats.manaCost);
+      // Remove used materials from hands
+      gameState.player = removeUsedFromHand(gameState.player, playerMaterialsUsed);
+      if (aiComponents.length > 0) {
+        gameState.opponent = removeUsedFromHand(gameState.opponent, aiMaterialsUsed);
       }
       
-      // Apply combat with universal targeting - manually apply effects based on target
+      // Apply combat with universal targeting
       if (aiComponents.length > 0 && aiStats) {
         const playerToOpponent = playerStats.target === "opponent";
         const aiToOpponent = aiStats.target === "opponent";
         
-        // Calculate total effects for each mage
-        const playerDamage = playerStats.damage + playerStats.bonus;
-        const aiDamage = aiStats.damage + aiStats.bonus;
-        
-        // Calculate incoming damage and shields for each mage
         let damageToPlayer = 0;
         let damageToAI = 0;
         let shieldOnPlayer = 0;
@@ -203,22 +217,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
         
         // Route player's spell effects
         if (playerToOpponent) {
-          damageToAI += playerDamage;
+          damageToAI += playerStats.damage;
           shieldOnAI += playerStats.shieldPower;
           healingOnAI += playerStats.healingPower;
         } else {
-          damageToPlayer += playerDamage;
+          damageToPlayer += playerStats.damage;
           shieldOnPlayer += playerStats.shieldPower;
           healingOnPlayer += playerStats.healingPower;
         }
         
         // Route AI's spell effects
         if (aiToOpponent) {
-          damageToPlayer += aiDamage;
+          damageToPlayer += aiStats.damage;
           shieldOnPlayer += aiStats.shieldPower;
           healingOnPlayer += aiStats.healingPower;
         } else {
-          damageToAI += aiDamage;
+          damageToAI += aiStats.damage;
           shieldOnAI += aiStats.shieldPower;
           healingOnAI += aiStats.healingPower;
         }
@@ -242,32 +256,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
       } else {
         // Player only (no AI spell)
         const playerToOpponent = playerStats.target === "opponent";
-        const playerDamage = playerStats.damage + playerStats.bonus;
         
-        // Route all effects to the target, then apply shields
         if (playerToOpponent) {
-          // All effects target opponent
-          const damageToAI = playerDamage;
-          const shieldOnAI = playerStats.shieldPower;
-          const healingOnAI = playerStats.healingPower;
-          
-          const finalDamage = Math.max(0, damageToAI - shieldOnAI);
+          const finalDamage = Math.max(0, playerStats.damage - 0);
           gameState = applySimultaneousDamage(gameState, 0, finalDamage);
           gameState.opponent = {
             ...gameState.opponent,
-            health: Math.min(gameState.opponent.maxHealth, gameState.opponent.health + healingOnAI),
+            health: Math.min(gameState.opponent.maxHealth, gameState.opponent.health + playerStats.healingPower),
           };
         } else {
-          // All effects target self
-          const damageToPlayer = playerDamage;
-          const shieldOnPlayer = playerStats.shieldPower;
-          const healingOnPlayer = playerStats.healingPower;
-          
-          const finalDamage = Math.max(0, damageToPlayer - shieldOnPlayer);
+          const finalDamage = Math.max(0, playerStats.damage - playerStats.shieldPower);
           gameState = applySimultaneousDamage(gameState, finalDamage, 0);
           gameState.player = {
             ...gameState.player,
-            health: Math.min(gameState.player.maxHealth, gameState.player.health + healingOnPlayer),
+            health: Math.min(gameState.player.maxHealth, gameState.player.health + playerStats.healingPower),
           };
         }
       }
@@ -278,17 +280,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // If game is still ongoing, set to combat phase
       if (gameState.gamePhase !== "victory" && gameState.gamePhase !== "defeat" && gameState.gamePhase !== "tie") {
         gameState.gamePhase = "combat";
+        
+        // Replenish hands with new components equal to what was used
+        gameState = replenishHand(gameState, "player", playerMaterialsUsed.length);
+        gameState = replenishHand(gameState, "opponent", aiMaterialsUsed.length);
       }
-      
-      // Regenerate mana for next turn
-      gameState.player = regenerateMana(gameState.player);
-      gameState.opponent = regenerateMana(gameState.opponent);
-      
-      // Unlock spells for next round
-      gameState.playerSpellLocked = false;
-      gameState.aiSpellLocked = false;
-      gameState.lockedPlayerSpell = null;
-      gameState.lockedAiSpell = null;
       
       await storage.updateGameState(sessionId, gameState);
       
@@ -300,8 +296,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           damage: playerStats.damage,
           shieldPower: playerStats.shieldPower,
           healingPower: playerStats.healingPower,
-          bonus: playerStats.bonus,
-          manaCost: playerStats.manaCost, 
+          componentsUsed: playerStats.componentsUsed,
           target: playerStats.target,
         },
         aiSpellResult: aiComponents.length > 0 && aiStats ? {
@@ -309,8 +304,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           damage: aiStats.damage,
           shieldPower: aiStats.shieldPower,
           healingPower: aiStats.healingPower,
-          bonus: aiStats.bonus,
-          manaCost: aiStats.manaCost,
+          componentsUsed: aiStats.componentsUsed,
           target: aiStats.target,
           components: aiComponents,
         } : null,
@@ -321,8 +315,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
   
-  // AI turn
-  app.post("/api/game/:sessionId/ai-turn", async (req, res) => {
+  // Next round - transition from combat to building phase
+  app.post("/api/game/:sessionId/next-round", async (req, res) => {
     try {
       const { sessionId } = req.params;
       
@@ -331,43 +325,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(404).json({ error: "Game not found" });
       }
       
-      if (gameState.gamePhase === "victory" || gameState.gamePhase === "defeat") {
-        return res.status(400).json({ error: "Game is over" });
+      if (gameState.gamePhase !== "combat") {
+        return res.status(400).json({ error: "Can only advance to next round from combat phase" });
       }
       
-      // Switch to AI turn
-      gameState = switchTurn(gameState);
-      
-      // Generate AI spell based on difficulty and specialization
-      const difficulty = getAIDifficulty(gameState.opponent.health, gameState.player.health);
-      const aiComponents = generateAISpell(gameState.opponent.mana, difficulty, gameState.opponent.specialization);
-      
-      if (aiComponents.length === 0) {
-        // AI passes turn if can't cast
-        gameState = switchTurn(gameState);
-        await storage.updateGameState(sessionId, gameState);
-        return res.json({ gameState, aiPassed: true });
-      }
-      
-      // Calculate AI spell effects
-      const { damage, manaCost, effect, target } = calculateSpellStats(aiComponents, gameState.opponent.specialization);
-      
-      // Apply AI spell (AI should always target player, but check just in case)
-      gameState.opponent = consumeMana(gameState.opponent, manaCost);
-      gameState = applyCombatDamage(gameState, damage, target === "opponent" ? "player" : "opponent");
-      
-      // Switch back to player turn
-      gameState = switchTurn(gameState);
+      // Advance to next round
+      gameState = nextRound(gameState);
       
       await storage.updateGameState(sessionId, gameState);
       
-      res.json({
-        gameState,
-        aiSpell: { effect, damage, manaCost, target, components: aiComponents },
-      });
+      res.json({ gameState });
     } catch (error) {
-      console.error("Error in AI turn:", error);
-      res.status(500).json({ error: "Failed to execute AI turn" });
+      console.error("Error advancing round:", error);
+      res.status(500).json({ error: "Failed to advance round" });
     }
   });
   

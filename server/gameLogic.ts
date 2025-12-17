@@ -9,39 +9,97 @@ export interface CharacterAttributes {
   specialization: Specialization;
 }
 
+// Drawable components pool (excluding containers and Gust which are always available)
+const drawableComponentIds = [
+  // Air
+  "lightning", "storm", "breeze", "cyclone",
+  // Earth
+  "boulder", "crystal", "sand", "stone", "sulfur", "pebble", "quartz",
+  // Fire
+  "ember", "flame", "magma", "spark", "inferno", "cinder",
+  // Water
+  "frost", "ice", "mist", "wave", "glacier", "droplet", "torrent",
+];
+
 function calculateMaxHealth(stamina: number): number {
   // Base health of 50, +10 per stamina point
   return 50 + (stamina * 10);
 }
 
-function calculateMaxMana(intellect: number): number {
-  // Base mana of 40, +8 per intellect point
-  return 40 + (intellect * 8);
+function calculateStartingHandSize(wisdom: number): number {
+  // Starting hand size = wisdom / 2, rounded up
+  return Math.ceil(wisdom / 2);
 }
 
-function calculateManaRegen(wisdom: number): number {
-  // Base regen of 5, +2 per wisdom point
-  return 5 + (wisdom * 2);
+function calculateIntellectDamageBonus(intellect: number): number {
+  // Intellect adds flat damage bonus: +1 damage per 2 intellect points
+  return Math.floor(intellect / 2);
 }
 
-function createMageFromAttributes(attributes: CharacterAttributes, isPlayer: boolean): Mage {
+function shuffleArray<T>(array: T[]): T[] {
+  const shuffled = [...array];
+  for (let i = shuffled.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+  }
+  return shuffled;
+}
+
+function createComponentPool(): string[] {
+  // Create a shuffled pool with multiple copies based on rarity
+  // Common: 3 copies, Uncommon: 2 copies, Rare: 1 copy
+  const pool: string[] = [];
+  const rarityMultiplier: Record<string, number> = {
+    common: 3,
+    uncommon: 2,
+    rare: 1,
+  };
+  
+  // Component rarity mapping
+  const componentRarity: Record<string, string> = {
+    // Common
+    "breeze": "common", "pebble": "common", "ember": "common", "flame": "common",
+    "spark": "common", "cinder": "common", "frost": "common", "ice": "common",
+    "mist": "common", "droplet": "common", "sand": "common",
+    // Uncommon
+    "lightning": "uncommon", "storm": "uncommon", "boulder": "uncommon",
+    "stone": "uncommon", "quartz": "uncommon", "wave": "uncommon", "torrent": "uncommon",
+    // Rare
+    "cyclone": "rare", "crystal": "rare", "sulfur": "rare", "magma": "rare",
+    "inferno": "rare", "glacier": "rare",
+  };
+  
+  for (const compId of drawableComponentIds) {
+    const rarity = componentRarity[compId] || "common";
+    const copies = rarityMultiplier[rarity] || 1;
+    for (let i = 0; i < copies; i++) {
+      pool.push(compId);
+    }
+  }
+  
+  return shuffleArray(pool);
+}
+
+function drawComponents(pool: string[], count: number): { drawn: string[], remaining: string[] } {
+  const drawn = pool.slice(0, count);
+  const remaining = pool.slice(count);
+  return { drawn, remaining };
+}
+
+function createMageFromAttributes(attributes: CharacterAttributes, isPlayer: boolean, initialHand: string[]): Mage {
   const maxHealth = calculateMaxHealth(attributes.stamina);
-  const maxMana = calculateMaxMana(attributes.intellect);
-  const manaRegen = calculateManaRegen(attributes.wisdom);
   
   return {
     id: randomUUID(),
     name: attributes.name,
     health: maxHealth,
     maxHealth,
-    mana: maxMana,
-    maxMana,
-    manaRegen,
     intellect: attributes.intellect,
     stamina: attributes.stamina,
     wisdom: attributes.wisdom,
     specialization: attributes.specialization,
     isPlayer,
+    hand: initialHand,
   };
 }
 
@@ -51,18 +109,18 @@ function generateAICharacterAttributes(): CharacterAttributes {
   const specialization = specializations[Math.floor(Math.random() * specializations.length)];
   
   // AI distributes 6 free points strategically
-  // For pyromancers: prioritize intellect (more mana for fire spells)
-  // For aquamancers: prioritize intellect and wisdom (mana and regen)
+  // For pyromancers: prioritize intellect (more damage bonus)
+  // For aquamancers: prioritize wisdom (larger hand size)
   const baseAttributes = { intellect: 10, stamina: 10, wisdom: 10 };
   
   if (specialization === "pyromancer") {
-    baseAttributes.intellect += 3; // More mana for aggressive fire spells
+    baseAttributes.intellect += 3; // More damage bonus for aggressive playstyle
     baseAttributes.stamina += 2;   // Some survivability
-    baseAttributes.wisdom += 1;    // Minimal regen
+    baseAttributes.wisdom += 1;    // Smaller hand but powerful spells
   } else {
-    baseAttributes.intellect += 2; // Good mana pool
+    baseAttributes.intellect += 2; // Good damage bonus
     baseAttributes.stamina += 2;   // Balanced survivability
-    baseAttributes.wisdom += 2;    // Good mana regen for sustained combat
+    baseAttributes.wisdom += 2;    // Larger hand for more options
   }
   
   return {
@@ -75,43 +133,54 @@ function generateAICharacterAttributes(): CharacterAttributes {
 export function createInitialGameState(playerAttributes: CharacterAttributes): GameState {
   const aiAttributes = generateAICharacterAttributes();
   
+  // Create the component pool
+  const componentPool = createComponentPool();
+  
+  // Calculate starting hand sizes
+  const playerHandSize = calculateStartingHandSize(playerAttributes.wisdom);
+  const aiHandSize = calculateStartingHandSize(aiAttributes.wisdom);
+  
+  // Draw initial hands
+  const playerDraw = drawComponents(componentPool, playerHandSize);
+  const aiDraw = drawComponents(playerDraw.remaining, aiHandSize);
+  
   return {
-    player: createMageFromAttributes(playerAttributes, true),
-    opponent: createMageFromAttributes(aiAttributes, false),
+    player: createMageFromAttributes(playerAttributes, true, playerDraw.drawn),
+    opponent: createMageFromAttributes(aiAttributes, false, aiDraw.drawn),
     currentTurn: "player",
     gamePhase: "building",
     playerSpellLocked: false,
     aiSpellLocked: false,
     lockedPlayerSpell: null,
     lockedAiSpell: null,
+    componentPool: aiDraw.remaining,
+    round: 1,
   };
 }
 
+// Export for use in replenishment after each round
+export { drawComponents, calculateIntellectDamageBonus };
+
 export function calculateSpellStats(
   components: SpellComponent[], 
-  specialization?: Specialization
+  specialization?: Specialization,
+  intellect?: number
 ): { 
   damage: number; 
   shieldPower: number;
   healingPower: number;
-  manaCost: number; 
   effect: string;
   target: "self" | "opponent";
   hasValidPropulsion: boolean;
-  bonus: number;
+  componentsUsed: number;
 } {
   let totalDamage = 0;
   let totalShield = 0;
   let totalHealing = 0;
-  let totalManaCost = 0;
-  let totalBonus = 0;
+  let componentsUsed = 0;
   let hasPropulsionInsideContainer = false;
   const allElements = new Set<string>();
-  const allMaterials = new Set<string>();
   const effectTypes = new Set<string>();
-  const damageSpellNames: string[] = [];
-  const shieldSpellNames: string[] = [];
-  const healingSpellNames: string[] = [];
 
   // Process each top-level container
   components.forEach((comp) => {
@@ -119,67 +188,36 @@ export function calculateSpellStats(
     totalDamage += result.damage;
     totalShield += result.shield;
     totalHealing += result.healing;
-    totalManaCost += result.manaCost;
+    componentsUsed += result.componentCount;
     
     if (result.hasPropulsion) hasPropulsionInsideContainer = true;
     result.elements.forEach(e => allElements.add(e));
-    result.materials.forEach(m => allMaterials.add(m));
     if (result.effectType) effectTypes.add(result.effectType);
-    
-    // Generate spell name per-container based on its own materials
-    const containerElements = Array.from(result.elements);
-    const containerMaterials = result.materials;
-    const containerEffectType = new Set<string>([result.effectType]);
-    const { effectName, bonus } = determineEffectNameBackend(
-      containerElements, 
-      containerEffectType, 
-      result.hasPropulsion, 
-      containerMaterials
-    );
-    
-    // Only add to spell names if this container has valid propulsion or is a shield/healing spell
-    // Non-propulsion damage containers don't count toward spell names
-    if (result.effectType === "damage" && result.hasPropulsion) {
-      damageSpellNames.push(effectName);
-      totalBonus += bonus;
-    } else if (result.effectType === "shield") {
-      shieldSpellNames.push(effectName);
-      totalBonus += bonus;
-    } else if (result.effectType === "healing") {
-      healingSpellNames.push(effectName);
-      totalBonus += bonus;
-    }
-    // If effectType is "damage" but no propulsion, this container is invalid and contributes nothing
   });
+
+  // Apply intellect damage bonus
+  if (intellect && totalDamage > 0) {
+    const intellectBonus = calculateIntellectDamageBonus(intellect);
+    totalDamage += intellectBonus;
+  }
 
   function processContainer(comp: SpellComponent, spec?: Specialization): {
     damage: number;
     shield: number;
     healing: number;
-    manaCost: number;
+    componentCount: number;
     hasPropulsion: boolean;
     elements: Set<string>;
-    materials: Set<string>;
     effectType: string;
   } {
     let baseDamage = comp.baseDamage;
     let damageMultiplier = comp.damageMultiplier;
     let shield = comp.shieldPower || 0;
     let healing = comp.healingPower || 0;
-    let componentCost = comp.manaCost;
     let hasPropulsion = false;
+    let componentCount = 0; // Don't count containers/gust
     const elements = new Set<string>([comp.element]);
-    const materials = new Set<string>();
     let effectType = comp.effectType || "damage";
-
-    // Apply specialization cost reduction
-    if (spec === "pyromancer" && comp.element === "fire") {
-      componentCost = Math.floor(componentCost * 0.8);
-    } else if (spec === "aquamancer" && comp.element === "water") {
-      componentCost = Math.floor(componentCost * 0.8);
-    }
-
-    let manaCost = componentCost;
     const childMaterials: string[] = [];
     const childElements = new Set<string>();
 
@@ -191,22 +229,17 @@ export function calculateSpellStats(
         shield += child.shieldPower || 0;
         healing += child.healingPower || 0;
         
-        let childCost = child.manaCost;
-        if (spec === "pyromancer" && child.element === "fire") {
-          childCost = Math.floor(childCost * 0.8);
-        } else if (spec === "aquamancer" && child.element === "water") {
-          childCost = Math.floor(childCost * 0.8);
-        }
-        manaCost += childCost;
-        
         elements.add(child.element);
         childElements.add(child.element);
         const materialId = child.baseId || child.id;
-        childMaterials.push(materialId); // Use baseId for pattern matching
-        materials.add(materialId);
+        childMaterials.push(materialId);
         
         if (child.role === "propulsion" && comp.role === "container") {
           hasPropulsion = true;
+          // Don't count propulsion (gust) toward component count
+        } else if (child.role !== "container") {
+          // Count drawable components (materials, activations, etc.)
+          componentCount++;
         }
         
         if (child.effectType === "shield") effectType = "shield";
@@ -229,18 +262,20 @@ export function calculateSpellStats(
     
     if (isHealingSpell) {
       effectType = "healing";
-      // Healing power = sum of child mana costs
+      // Healing power = base damage of all materials
       healing = childMaterials.reduce((sum, id) => {
         const child = comp.children?.find(c => (c.baseId || c.id) === id);
-        return sum + (child?.manaCost || 0);
+        return sum + (child?.baseDamage || 0);
       }, 0);
+      healing = Math.max(healing, 5); // Minimum healing of 5
     } else if (isShieldSpell) {
       effectType = "shield";
-      // Shield power = sum of child mana costs
+      // Shield power = base damage of all materials * 2
       shield = childMaterials.reduce((sum, id) => {
         const child = comp.children?.find(c => (c.baseId || c.id) === id);
-        return sum + (child?.manaCost || 0);
-      }, 0);
+        return sum + (child?.baseDamage || 0);
+      }, 0) * 2;
+      shield = Math.max(shield, 5); // Minimum shield of 5
     }
 
     // Calculate damage for this container
@@ -257,324 +292,49 @@ export function calculateSpellStats(
     containerDamage = Math.min(containerDamage, 100);
 
     // Damage only counts if the container has propulsion (can target opponent)
-    // Without propulsion, damage containers are invalid and contribute nothing
     const validDamage = (effectType === "damage" && hasPropulsion) ? containerDamage : 0;
 
     return {
       damage: validDamage,
       shield: effectType === "shield" ? shield : 0,
       healing: effectType === "healing" ? healing : 0,
-      manaCost,
+      componentCount,
       hasPropulsion,
       elements,
-      materials,
       effectType,
     };
   }
 
   const target = hasPropulsionInsideContainer ? "opponent" : "self";
 
-  // Combine spell names from all containers
-  let finalEffectName = "Unknown Spell";
-  const allSpellNames = [...damageSpellNames, ...shieldSpellNames, ...healingSpellNames];
-  
-  if (allSpellNames.length > 0) {
-    finalEffectName = allSpellNames.join(" + ");
+  // Simple effect description based on what the spell does
+  let finalEffectName = "Spell";
+  if (totalDamage > 0 && totalShield > 0) {
+    finalEffectName = "Attack + Shield";
+  } else if (totalDamage > 0 && totalHealing > 0) {
+    finalEffectName = "Attack + Heal";
+  } else if (totalDamage > 0) {
+    finalEffectName = "Attack";
+  } else if (totalShield > 0) {
+    finalEffectName = "Shield";
+  } else if (totalHealing > 0) {
+    finalEffectName = "Heal";
   }
-
-  // Add multi-spell bonuses
-  if (damageSpellNames.length > 0 && shieldSpellNames.length > 0) totalBonus += 2;
-  if (damageSpellNames.length > 0 && healingSpellNames.length > 0) totalBonus += 2;
-  if (shieldSpellNames.length > 0 && healingSpellNames.length > 0) totalBonus += 2;
-  if (damageSpellNames.length > 0 && shieldSpellNames.length > 0 && healingSpellNames.length > 0) totalBonus += 3;
 
   return { 
     damage: totalDamage, 
     shieldPower: totalShield,
     healingPower: totalHealing,
-    manaCost: totalManaCost, 
     effect: finalEffectName,
     target,
     hasValidPropulsion: hasPropulsionInsideContainer,
-    bonus: totalBonus,
+    componentsUsed,
   };
-}
-
-function determineEffectNameBackend(
-  elements: string[],
-  effectTypes: Set<string>,
-  hasPropulsion: boolean,
-  materials: Set<string>
-): { effectName: string; bonus: number } {
-  const hasFire = elements.includes("fire");
-  const hasWater = elements.includes("water");
-  const hasEarth = elements.includes("earth");
-  const hasAir = elements.includes("air");
-  const hasShield = effectTypes.has("shield");
-  const hasHealing = effectTypes.has("healing");
-  const hasDamage = effectTypes.has("damage");
-
-  // Helper function to check if materials include all specified components
-  const has = (...mats: string[]) => mats.every(m => materials.has(m));
-
-  let effectName = "Unknown Spell";
-  let bonus = 0;
-
-  // DAMAGE SPELLS: Check specific material combinations first (most specific → least specific)
-  if (hasDamage && hasPropulsion) {
-    // 4+ Material Combinations (highest specificity)
-    if (has("magma", "sulfur", "crystal", "stone")) {
-      effectName = "Crystal Inferno";
-      bonus = 6;
-    } else if (has("boulder", "frost", "crystal", "stone")) {
-      effectName = "Diamond Avalanche";
-      bonus = 6;
-    } else if (has("lightning", "storm", "crystal", "ice")) {
-      effectName = "Prismatic Lightning";
-      bonus = 6;
-    } else if (has("magma", "sand", "crystal", "stone")) {
-      effectName = "Obsidian Cascade";
-      bonus = 6;
-    } else if (has("lightning", "storm", "sand", "crystal")) {
-      effectName = "Fulgurite Tempest";
-      bonus = 6;
-    }
-    // 3 Material Combinations
-    else if (has("magma", "sulfur", "crystal")) {
-      effectName = "Volcanic Crystal";
-      bonus = 5;
-    } else if (has("sand", "crystal", "stone")) {
-      effectName = "Crystal Sandstorm";
-      bonus = 5;
-    } else if (has("sand", "crystal", "lightning")) {
-      effectName = "Glass Shard Storm";
-      bonus = 5;
-    } else if (has("magma", "sand", "crystal")) {
-      effectName = "Molten Glass";
-      bonus = 5;
-    } else if (has("magma", "sulfur", "stone")) {
-      effectName = "Magma Bomb";
-      bonus = 4;
-    } else if (has("flame", "ember", "stone")) {
-      effectName = "Scorching Boulder";
-      bonus = 4;
-    } else if (has("boulder", "frost", "crystal")) {
-      effectName = "Crystal Glacier";
-      bonus = 5;
-    } else if (has("boulder", "frost", "stone")) {
-      effectName = "Glacial Hammer";
-      bonus = 4;
-    } else if (has("boulder", "frost", "ice")) {
-      effectName = "Frozen Avalanche";
-      bonus = 4;
-    } else if (has("frost", "ice", "crystal")) {
-      effectName = "Diamond Shard";
-      bonus = 5;
-    } else if (has("lightning", "storm", "crystal")) {
-      effectName = "Prismatic Storm";
-      bonus = 5;
-    } else if (has("sand", "stone", "sulfur")) {
-      effectName = "Volcanic Sand";
-      bonus = 4;
-    } else if (has("storm", "sand", "lightning")) {
-      effectName = "Sandstorm Surge";
-      bonus = 4;
-    } else if (has("boulder", "sand", "stone")) {
-      effectName = "Earthen Avalanche";
-      bonus = 4;
-    } else if (has("boulder", "stone", "lightning")) {
-      effectName = "Thunder Crash";
-      bonus = 4;
-    } else if (has("boulder", "stone", "sulfur")) {
-      effectName = "Sulfur Barrage";
-      bonus = 4;
-    } else if (has("boulder", "lightning", "storm")) {
-      effectName = "Thunder Boulder";
-      bonus = 4;
-    } else if (has("stone", "lightning", "storm")) {
-      effectName = "Thunder Stone";
-      bonus = 4;
-    } else if (has("magma", "frost")) {
-      effectName = "Steam Eruption";
-      bonus = 4;
-    } else if (has("boulder", "ember")) {
-      effectName = "Molten Rock";
-      bonus = 4;
-    } else if (has("lightning", "frost")) {
-      effectName = "Frozen Lightning";
-      bonus = 4;
-    }
-    // 2 Material Combinations
-    else if (has("magma", "sulfur")) {
-      effectName = "Sulfuric Blast";
-      bonus = 3;
-    } else if (has("magma", "flame")) {
-      effectName = "Volcanic Eruption";
-      bonus = 3;
-    } else if (has("flame", "ember")) {
-      effectName = "Inferno Blast";
-      bonus = 3;
-    } else if (has("frost", "ice")) {
-      effectName = "Glacial Lance";
-      bonus = 3;
-    } else if (has("boulder", "frost")) {
-      effectName = "Frozen Boulder";
-      bonus = 3;
-    } else if (has("boulder", "stone")) {
-      effectName = "Boulder Crash";
-      bonus = 3;
-    } else if (has("boulder", "crystal")) {
-      effectName = "Crystal Boulder";
-      bonus = 3;
-    } else if (has("stone", "crystal")) {
-      effectName = "Crystalline Strike";
-      bonus = 3;
-    } else if (has("sand", "crystal")) {
-      effectName = "Crystal Sand";
-      bonus = 3;
-    } else if (has("sand", "stone")) {
-      effectName = "Stone Barrage";
-      bonus = 3;
-    } else if (has("sand", "lightning")) {
-      effectName = "Fulgurite Strike";
-      bonus = 3;
-    } else if (has("sand", "magma")) {
-      effectName = "Glass Blast";
-      bonus = 3;
-    } else if (has("sand", "storm")) {
-      effectName = "Sandstorm";
-      bonus = 3;
-    } else if (has("boulder", "sand")) {
-      effectName = "Rock Slide";
-      bonus = 3;
-    } else if (has("boulder", "lightning")) {
-      effectName = "Lightning Boulder";
-      bonus = 3;
-    } else if (has("boulder", "storm")) {
-      effectName = "Storm Boulder";
-      bonus = 3;
-    } else if (has("boulder", "sulfur")) {
-      effectName = "Sulfuric Rock";
-      bonus = 3;
-    } else if (has("stone", "lightning")) {
-      effectName = "Lightning Stone";
-      bonus = 3;
-    } else if (has("stone", "storm")) {
-      effectName = "Storm Stone";
-      bonus = 3;
-    } else if (has("stone", "magma")) {
-      effectName = "Molten Stone";
-      bonus = 3;
-    } else if (has("stone", "frost")) {
-      effectName = "Frozen Stone";
-      bonus = 3;
-    } else if (has("lightning", "storm")) {
-      effectName = "Thunderstorm";
-      bonus = 3;
-    } else if (has("storm", "frost")) {
-      effectName = "Frozen Storm";
-      bonus = 3;
-    }
-    // Single high-value materials (medium specificity)
-    else if (has("magma")) {
-      effectName = "Magma Blast";
-      bonus = 2;
-    } else if (has("lightning")) {
-      effectName = "Lightning Strike";
-      bonus = 2;
-    } else if (has("boulder")) {
-      effectName = "Boulder Throw";
-      bonus = 2;
-    } else if (has("storm")) {
-      effectName = "Storm Surge";
-      bonus = 2;
-    }
-    // Fallback to element-based naming (lowest specificity)
-    else if (hasFire && hasWater && hasAir) {
-      effectName = "Tempest Storm";
-      bonus = 5;
-    } else if (hasFire && hasEarth && hasWater) {
-      effectName = "Lava Burst";
-      bonus = 5;
-    } else if (hasWater && hasAir) {
-      effectName = "Blizzard";
-      bonus = 3;
-    } else if (hasFire && hasWater) {
-      effectName = "Steam Blast";
-      bonus = 3;
-    } else if (hasEarth && hasWater) {
-      effectName = "Mud Torrent";
-      bonus = 2;
-    } else if (hasFire && hasEarth) {
-      effectName = "Fireball";
-    } else if (hasWater) {
-      effectName = "Frost Bolt";
-    } else if (hasFire) {
-      effectName = "Fire Blast";
-    } else if (hasEarth) {
-      effectName = "Stone Strike";
-    } else if (hasAir) {
-      effectName = "Wind Blast";
-    }
-  }
-
-  // Shield spell names (material-specific)
-  if (hasShield) {
-    if (has("ice", "crystal")) {
-      effectName = effectName === "Unknown Spell" ? "Crystal Barrier" : `${effectName} + Crystal Barrier`;
-      bonus += 2;
-    } else if (has("ice")) {
-      effectName = effectName === "Unknown Spell" ? "Ice Barrier" : `${effectName} + Ice Barrier`;
-    } else if (has("ember", "stone")) {
-      effectName = effectName === "Unknown Spell" ? "Molten Wall" : `${effectName} + Molten Wall`;
-      bonus += 2;
-    } else if (has("ember")) {
-      effectName = effectName === "Unknown Spell" ? "Flame Guard" : `${effectName} + Flame Guard`;
-    } else if (has("sand", "crystal")) {
-      effectName = effectName === "Unknown Spell" ? "Crystal Shield" : `${effectName} + Crystal Shield`;
-      bonus += 2;
-    } else if (has("sand")) {
-      effectName = effectName === "Unknown Spell" ? "Sand Wall" : `${effectName} + Sand Wall`;
-    } else if (hasWater && hasFire) {
-      effectName = effectName === "Unknown Spell" ? "Steam Shield" : `${effectName} + Steam Shield`;
-    } else if (hasWater) {
-      effectName = effectName === "Unknown Spell" ? "Ice Barrier" : `${effectName} + Ice Barrier`;
-    } else if (hasEarth) {
-      effectName = effectName === "Unknown Spell" ? "Stone Wall" : `${effectName} + Stone Wall`;
-    } else if (hasFire) {
-      effectName = effectName === "Unknown Spell" ? "Flame Guard" : `${effectName} + Flame Guard`;
-    } else if (hasAir) {
-      effectName = effectName === "Unknown Spell" ? "Wind Ward" : `${effectName} + Wind Ward`;
-    }
-  }
-
-  // Healing spell names (material-specific)
-  if (hasHealing) {
-    if (has("mist", "crystal")) {
-      effectName = effectName === "Unknown Spell" ? "Crystal Renewal" : `${effectName} + Crystal Renewal`;
-      bonus += 2;
-    } else if (hasWater) {
-      effectName = effectName === "Unknown Spell" ? "Healing Waters" : `${effectName} + Healing Waters`;
-    } else if (hasEarth) {
-      effectName = effectName === "Unknown Spell" ? "Life Essence" : `${effectName} + Life Essence`;
-    } else if (hasAir) {
-      effectName = effectName === "Unknown Spell" ? "Vital Breeze" : `${effectName} + Vital Breeze`;
-    }
-  }
-
-  // Multi-spell bonuses
-  if (hasDamage && hasShield) bonus += 2;
-  if (hasDamage && hasHealing) bonus += 2;
-  if (hasShield && hasHealing) bonus += 2;
-  if (hasDamage && hasShield && hasHealing) bonus += 3;
-
-  return { effectName, bonus };
 }
 
 export function validateSpell(
   components: SpellComponent[], 
-  playerMana: number,
-  specialization?: Specialization
+  playerHand: string[]
 ): { valid: boolean; error?: string } {
   if (components.length === 0) {
     return { valid: false, error: "Spell must have at least one component" };
@@ -585,6 +345,13 @@ export function validateSpell(
   const checkDuplicates = (comps: SpellComponent[]): boolean => {
     for (const comp of comps) {
       const baseId = comp.baseId || comp.id;
+      // Skip containers and gust - they're always available
+      if (comp.role === "container" || comp.role === "propulsion") {
+        if (comp.children && !checkDuplicates(comp.children)) {
+          return false;
+        }
+        continue;
+      }
       if (usedBaseIds.has(baseId)) {
         return false; // Duplicate found
       }
@@ -598,6 +365,38 @@ export function validateSpell(
   
   if (!checkDuplicates(components)) {
     return { valid: false, error: "Each component can only be used once per round" };
+  }
+  
+  // Check that all used materials are in the player's hand
+  const materialsUsed: string[] = [];
+  const collectMaterials = (comps: SpellComponent[]) => {
+    for (const comp of comps) {
+      // Skip containers and gust
+      if (comp.role !== "container" && comp.role !== "propulsion") {
+        materialsUsed.push(comp.baseId || comp.id);
+      }
+      if (comp.children) {
+        collectMaterials(comp.children);
+      }
+    }
+  };
+  collectMaterials(components);
+  
+  // Count occurrences in hand vs used
+  const handCounts = new Map<string, number>();
+  for (const id of playerHand) {
+    handCounts.set(id, (handCounts.get(id) || 0) + 1);
+  }
+  
+  const usedCounts = new Map<string, number>();
+  for (const id of materialsUsed) {
+    usedCounts.set(id, (usedCounts.get(id) || 0) + 1);
+  }
+  
+  for (const [id, count] of usedCounts) {
+    if ((handCounts.get(id) || 0) < count) {
+      return { valid: false, error: `You don't have enough ${id} in your hand` };
+    }
   }
   
   // Check for propulsion without container
@@ -640,12 +439,6 @@ export function validateSpell(
     return { valid: false, error: "Containers can hold a maximum of 4 components" };
   }
   
-  const { manaCost } = calculateSpellStats(components, specialization);
-  
-  if (manaCost > playerMana) {
-    return { valid: false, error: `Not enough mana. Need ${manaCost}, have ${playerMana}` };
-  }
-  
   return { valid: true };
 }
 
@@ -686,23 +479,19 @@ export function applySimultaneousDamage(state: GameState, damageToPlayer: number
 
 export function applyCombatResolution(
   state: GameState,
-  playerSpell: { damage: number; shieldPower: number; healingPower: number; bonus: number },
-  aiSpell: { damage: number; shieldPower: number; healingPower: number; bonus: number }
+  playerSpell: { damage: number; shieldPower: number; healingPower: number; componentsUsed: number },
+  aiSpell: { damage: number; shieldPower: number; healingPower: number; componentsUsed: number }
 ): GameState {
   let newState = { ...state };
 
-  // Step 1: Apply bonus damage
-  const playerDamage = playerSpell.damage + playerSpell.bonus;
-  const aiDamage = aiSpell.damage + aiSpell.bonus;
+  // Step 1: Calculate damage with shields
+  const damageToPlayer = Math.max(0, aiSpell.damage - playerSpell.shieldPower);
+  const damageToOpponent = Math.max(0, playerSpell.damage - aiSpell.shieldPower);
 
-  // Step 2: Reduce damage by shields
-  const damageToPlayer = Math.max(0, aiDamage - playerSpell.shieldPower);
-  const damageToOpponent = Math.max(0, playerDamage - aiSpell.shieldPower);
-
-  // Step 3: Apply damage simultaneously
+  // Step 2: Apply damage simultaneously
   newState = applySimultaneousDamage(newState, damageToPlayer, damageToOpponent);
 
-  // Step 4: Apply healing
+  // Step 3: Apply healing
   newState.player = {
     ...newState.player,
     health: Math.min(newState.player.maxHealth, newState.player.health + playerSpell.healingPower),
@@ -733,31 +522,66 @@ export function checkGameEnd(state: GameState): GameState {
   return newState;
 }
 
-export function consumeMana(mage: Mage, amount: number): Mage {
-  return {
-    ...mage,
-    mana: Math.max(0, mage.mana - amount),
-  };
+export function replenishHand(
+  state: GameState,
+  target: "player" | "opponent",
+  componentsUsed: number
+): GameState {
+  const newState = { ...state };
+  
+  if (!newState.componentPool) {
+    newState.componentPool = [];
+  }
+  
+  // Draw new components equal to what was used
+  const drawCount = Math.min(componentsUsed, newState.componentPool.length);
+  const drawn = newState.componentPool.slice(0, drawCount);
+  const remaining = newState.componentPool.slice(drawCount);
+  
+  if (target === "player") {
+    newState.player = {
+      ...newState.player,
+      hand: [...(newState.player.hand || []), ...drawn],
+    };
+  } else {
+    newState.opponent = {
+      ...newState.opponent,
+      hand: [...(newState.opponent.hand || []), ...drawn],
+    };
+  }
+  
+  newState.componentPool = remaining;
+  
+  return newState;
 }
 
-export function restoreMana(mage: Mage, amount: number): Mage {
-  return {
-    ...mage,
-    mana: Math.min(mage.maxMana, mage.mana + amount),
-  };
-}
-
-export function regenerateMana(mage: Mage): Mage {
-  return restoreMana(mage, mage.manaRegen);
-}
-
-export function switchTurn(state: GameState): GameState {
-  const newTurn = state.currentTurn === "player" ? "opponent" : "player";
+export function removeUsedFromHand(
+  mage: Mage,
+  componentsUsed: string[]
+): Mage {
+  const newHand = [...(mage.hand || [])];
+  
+  for (const compId of componentsUsed) {
+    const index = newHand.indexOf(compId);
+    if (index !== -1) {
+      newHand.splice(index, 1);
+    }
+  }
   
   return {
+    ...mage,
+    hand: newHand,
+  };
+}
+
+export function nextRound(state: GameState): GameState {
+  return {
     ...state,
-    currentTurn: newTurn,
-    player: newTurn === "player" ? restoreMana(state.player, state.player.manaRegen) : state.player,
-    opponent: newTurn === "opponent" ? restoreMana(state.opponent, state.opponent.manaRegen) : state.opponent,
+    round: (state.round || 1) + 1,
+    gamePhase: "building",
+    playerSpellLocked: false,
+    aiSpellLocked: false,
+    lockedPlayerSpell: null,
+    lockedAiSpell: null,
   };
 }
