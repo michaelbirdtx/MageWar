@@ -60,9 +60,27 @@ export default function ComponentCard({
           <span className="text-xs font-medium bg-card px-2 py-1 rounded-md border">
             {component.type}
           </span>
-          <span className="text-xs font-bold text-primary">
-            {component.manaCost} Mana
-          </span>
+          <div className="flex items-center gap-2">
+            {component.baseDamage > 0 && (
+              <span className="text-xs font-bold text-destructive" data-testid={`stat-damage-${component.id}`}>
+                DMG: {component.baseDamage}
+              </span>
+            )}
+            {component.damageMultiplier > 1 && (
+              <span className="text-xs font-bold text-purple-600 dark:text-purple-400" data-testid={`stat-multiplier-${component.id}`}>
+                x{component.damageMultiplier}
+              </span>
+            )}
+            {component.rarity && (
+              <span className={`text-xs px-1.5 py-0.5 rounded ${
+                component.rarity === "rare" ? "bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400" :
+                component.rarity === "uncommon" ? "bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400" :
+                "bg-gray-100 dark:bg-gray-900/30 text-gray-600 dark:text-gray-400"
+              }`} data-testid={`stat-rarity-${component.id}`}>
+                {component.rarity}
+              </span>
+            )}
+          </div>
         </div>
       </div>
     </Card>
