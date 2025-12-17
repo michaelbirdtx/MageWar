@@ -100,7 +100,7 @@ export default function CharacterCreator({ open, onComplete }: CharacterCreatorP
 
             <AttributeRocker
               label="Intellect"
-              description="Affects maximum Mana"
+              description="Adds +1 damage per 2 points"
               value={intellect}
               onIncrease={() => canIncrease(intellect) && setIntellect(intellect + 1)}
               onDecrease={() => canDecrease(intellect) && setIntellect(intellect - 1)}
@@ -122,7 +122,7 @@ export default function CharacterCreator({ open, onComplete }: CharacterCreatorP
 
             <AttributeRocker
               label="Wisdom"
-              description="Affects Mana Regeneration"
+              description="Determines starting hand size"
               value={wisdom}
               onIncrease={() => canIncrease(wisdom) && setWisdom(wisdom + 1)}
               onDecrease={() => canDecrease(wisdom) && setWisdom(wisdom - 1)}
@@ -152,8 +152,8 @@ export default function CharacterCreator({ open, onComplete }: CharacterCreatorP
             </Select>
             <p className="text-xs text-muted-foreground">
               {specialization === "pyromancer" 
-                ? "Increased fire damage and reduced fire component costs"
-                : "Increased water damage and reduced water component costs"}
+                ? "+20% damage with fire spells"
+                : "+20% damage with water spells"}
             </p>
           </div>
 
