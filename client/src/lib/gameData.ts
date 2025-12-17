@@ -347,7 +347,16 @@ export interface SpellBreakdown {
   effectType: string;
 }
 
-export function calculateSpellPower(components: SpellComponent[], intellectBonus: number = 0): {
+// Calculate intellect damage bonus (matches backend calculation)
+export function calculateIntellectBonus(intellect: number): number {
+  return Math.floor(intellect / 2);
+}
+
+export function calculateSpellPower(
+  components: SpellComponent[], 
+  intellect: number = 0,
+  specialization?: "pyromancer" | "aquamancer"
+): {
   damage: number;
   shieldPower: number;
   healingPower: number;
@@ -377,42 +386,6 @@ export function calculateSpellPower(components: SpellComponent[], intellectBonus
     return count;
   }
   componentsUsed = countMaterials(components);
-  
-  // Process each container
-  components.forEach((comp) => {
-    if (comp.role === "propulsion") {
-      propulsionWithoutContainer = true;
-      return;
-    }
-    
-    if (comp.type !== "container") return;
-    
-    const result = processContainer(comp);
-    totalDamage += result.damage;
-    totalShield += result.shield;
-    totalHealing += result.healing;
-    if (result.hasPropulsion) hasPropulsionInsideContainer = true;
-    effectTypes.push(result.effectType);
-    
-    const spellTarget: "self" | "opponent" = result.hasPropulsion ? "opponent" : "self";
-    perSpellBreakdown.push({
-      containerName: comp.name,
-      damage: result.damage,
-      shieldPower: result.shield,
-      healingPower: result.healing,
-      target: spellTarget,
-      effectType: result.effectType,
-    });
-  });
-
-  // Add intellect bonus to damage (applied to first damage spell in breakdown)
-  if (intellectBonus > 0 && perSpellBreakdown.length > 0) {
-    const firstDamageSpell = perSpellBreakdown.find(s => s.effectType === "damage" && s.damage > 0);
-    if (firstDamageSpell) {
-      firstDamageSpell.damage += intellectBonus;
-    }
-  }
-  totalDamage += intellectBonus;
 
   function processContainer(comp: SpellComponent): {
     damage: number;
@@ -420,11 +393,13 @@ export function calculateSpellPower(components: SpellComponent[], intellectBonus
     healing: number;
     hasPropulsion: boolean;
     effectType: string;
+    elements: Set<ElementType>;
   } {
     let baseDamage = comp.baseDamage;
     let damageMultiplier = comp.damageMultiplier;
     let hasPropulsion = false;
     const childElements = new Set<ElementType>();
+    const elements = new Set<ElementType>([comp.element]);
     const childMaterials: string[] = [];
 
     function hasDescendantPropulsion(component: SpellComponent): boolean {
@@ -440,6 +415,7 @@ export function calculateSpellPower(components: SpellComponent[], intellectBonus
         baseDamage += child.baseDamage;
         damageMultiplier *= child.damageMultiplier;
         childElements.add(child.element);
+        elements.add(child.element);
         const materialId = child.baseId || child.id;
         childMaterials.push(materialId);
         
@@ -477,12 +453,59 @@ export function calculateSpellPower(components: SpellComponent[], intellectBonus
       effectType = "damage";
       const cappedMultiplier = Math.min(damageMultiplier, 10);
       containerDamage = Math.floor(baseDamage * cappedMultiplier);
+      
+      // Apply specialization bonus inside container (matches backend)
+      if (specialization === "pyromancer" && elements.has("fire")) {
+        containerDamage = Math.floor(containerDamage * 1.2);
+      } else if (specialization === "aquamancer" && elements.has("water")) {
+        containerDamage = Math.floor(containerDamage * 1.2);
+      }
+      
+      containerDamage = Math.min(containerDamage, 100);
     }
 
     const validDamage = (effectType === "damage" && hasPropulsion) ? containerDamage : 0;
 
-    return { damage: validDamage, shield, healing, hasPropulsion, effectType };
+    return { damage: validDamage, shield, healing, hasPropulsion, effectType, elements };
   }
+  
+  // Process each container
+  components.forEach((comp) => {
+    if (comp.role === "propulsion") {
+      propulsionWithoutContainer = true;
+      return;
+    }
+    
+    if (comp.type !== "container") return;
+    
+    const result = processContainer(comp);
+    totalDamage += result.damage;
+    totalShield += result.shield;
+    totalHealing += result.healing;
+    if (result.hasPropulsion) hasPropulsionInsideContainer = true;
+    effectTypes.push(result.effectType);
+    
+    const spellTarget: "self" | "opponent" = result.hasPropulsion ? "opponent" : "self";
+    perSpellBreakdown.push({
+      containerName: comp.name,
+      damage: result.damage,
+      shieldPower: result.shield,
+      healingPower: result.healing,
+      target: spellTarget,
+      effectType: result.effectType,
+    });
+  });
+
+  // Add intellect bonus to damage (applied to first damage spell in breakdown)
+  // Calculate bonus the same way backend does: floor(intellect / 2)
+  const intellectBonus = calculateIntellectBonus(intellect);
+  if (intellectBonus > 0 && perSpellBreakdown.length > 0) {
+    const firstDamageSpell = perSpellBreakdown.find(s => s.effectType === "damage" && s.damage > 0);
+    if (firstDamageSpell) {
+      firstDamageSpell.damage += intellectBonus;
+    }
+  }
+  totalDamage += intellectBonus;
 
   const target: "self" | "opponent" = hasPropulsionInsideContainer ? "opponent" : "self";
 

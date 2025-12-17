@@ -22,11 +22,14 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 
-// Helper function to get all used base IDs from components
+// Helper function to get all used base IDs from components (excluding always-available components)
 const getUsedComponentIds = (comps: SpellComponent[]): Set<string> => {
   const used = new Set<string>();
   const traverse = (comp: SpellComponent) => {
-    used.add(comp.baseId || comp.id);
+    // Don't mark containers or propulsion (Gust) as "used" - they're always available
+    if (comp.type !== "container" && comp.role !== "propulsion") {
+      used.add(comp.baseId || comp.id);
+    }
     comp.children?.forEach(traverse);
   };
   comps.forEach(traverse);

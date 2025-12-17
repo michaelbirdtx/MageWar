@@ -13,7 +13,6 @@ import {
   ELEMENT_BG_COLORS,
   ELEMENT_BORDER_COLORS,
   calculateSpellPower,
-  applySpecializationBonus,
 } from "@/lib/gameData";
 import { useToast } from "@/hooks/use-toast";
 
@@ -38,34 +37,27 @@ export default function SpellBuilder({
   const [dragOverChild, setDragOverChild] = useState<string | null>(null);
   const { toast } = useToast();
 
-  const spellStats = calculateSpellPower(components, playerIntellect);
-  const baseDamage = spellStats.damage;
+  // Calculate spell power with intellect bonus and specialization (matches backend calculation)
+  const spellStats = calculateSpellPower(components, playerIntellect, playerSpecialization);
+  const damage = spellStats.damage;
   const shieldPower = spellStats.shieldPower;
   const healingPower = spellStats.healingPower;
   const componentsUsed = spellStats.componentsUsed;
   const perSpellBreakdown = spellStats.perSpellBreakdown;
-
-  // Apply specialization bonus
-  const { damage, damageBonus } =
-    applySpecializationBonus(
-      components,
-      baseDamage,
-      playerSpecialization,
-    );
 
   const { effect, target, validationError } = spellStats;
   const canCast = components.length > 0 && !validationError;
 
   const hasMultipleSpells = perSpellBreakdown.length > 1;
 
-  const specializationName =
-    playerSpecialization === "pyromancer" ? "Pyromancer" : "Aquamancer";
-
-  // Helper function to get all used base IDs
+  // Helper function to get all used base IDs (excluding always-available components)
   const getUsedBaseIds = (comps: SpellComponent[]): Set<string> => {
     const used = new Set<string>();
     const traverse = (comp: SpellComponent) => {
-      used.add(comp.baseId || comp.id);
+      // Containers and propulsion (Gust) are always available, don't mark as used
+      if (comp.type !== "container" && comp.role !== "propulsion") {
+        used.add(comp.baseId || comp.id);
+      }
       comp.children?.forEach(traverse);
     };
     comps.forEach(traverse);
@@ -363,11 +355,6 @@ export default function SpellBuilder({
                       data-testid="text-spell-damage"
                     >
                       {damage}
-                      {damageBonus > 0 && (
-                        <span className="text-xs ml-1 text-green-600 dark:text-green-400">
-                          (+{damageBonus})
-                        </span>
-                      )}
                     </p>
                   </div>
                 )}
