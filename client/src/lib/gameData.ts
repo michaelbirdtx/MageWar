@@ -405,6 +405,15 @@ export function calculateSpellPower(components: SpellComponent[], intellectBonus
     });
   });
 
+  // Add intellect bonus to damage (applied to first damage spell in breakdown)
+  if (intellectBonus > 0 && perSpellBreakdown.length > 0) {
+    const firstDamageSpell = perSpellBreakdown.find(s => s.effectType === "damage" && s.damage > 0);
+    if (firstDamageSpell) {
+      firstDamageSpell.damage += intellectBonus;
+    }
+  }
+  totalDamage += intellectBonus;
+
   function processContainer(comp: SpellComponent): {
     damage: number;
     shield: number;
@@ -474,9 +483,6 @@ export function calculateSpellPower(components: SpellComponent[], intellectBonus
 
     return { damage: validDamage, shield, healing, hasPropulsion, effectType };
   }
-
-  // Add intellect bonus to damage
-  totalDamage += intellectBonus;
 
   const target: "self" | "opponent" = hasPropulsionInsideContainer ? "opponent" : "self";
 
