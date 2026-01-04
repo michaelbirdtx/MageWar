@@ -359,7 +359,7 @@ export default function GamePage() {
           </div>
         ) : (
           /* Desktop Layout */
-          <div className="max-w-[100rem] mx-auto grid grid-cols-1 lg:grid-cols-5 gap-6">
+          <div className="max-w-[100rem] mx-auto grid grid-cols-1 lg:grid-cols-4 gap-6">
             {/* Component Library */}
             <div className="lg:col-span-1 min-w-0">
               <ComponentLibrary 
@@ -372,7 +372,7 @@ export default function GamePage() {
             </div>
             
             {/* Spell Builder */}
-            <div className="lg:col-span-3 lg:min-w-[640px]">
+            <div className="lg:col-span-2 lg:min-w-[500px]">
               <SpellBuilder
                 components={spellComponents}
                 onComponentsChange={setSpellComponents}
