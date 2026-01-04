@@ -445,9 +445,11 @@ export function calculateSpellPower(
 
     if (isHealingSpell) {
       effectType = "healing";
-      healing = Math.max(5, baseDamage * 2);
+      // Healing = sum of child baseDamages (no multiplier) - matches backend
+      healing = Math.max(5, baseDamage);
     } else if (isShieldSpell) {
       effectType = "shield";
+      // Shield = sum of child baseDamages * 2 - matches backend
       shield = Math.max(5, baseDamage * 2);
     } else {
       effectType = "damage";

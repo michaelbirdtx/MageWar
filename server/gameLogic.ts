@@ -393,7 +393,8 @@ export function validateSpell(
     usedCounts.set(id, (usedCounts.get(id) || 0) + 1);
   }
   
-  for (const [id, count] of usedCounts) {
+  for (const entry of Array.from(usedCounts.entries())) {
+    const [id, count] = entry;
     if ((handCounts.get(id) || 0) < count) {
       return { valid: false, error: `You don't have enough ${id} in your hand` };
     }
