@@ -71,8 +71,8 @@ export default function GamePage() {
   const [aiThinkingLock, setAiThinkingLock] = useState(false);
   const [showResultsModal, setShowResultsModal] = useState(false);
   const [roundResults, setRoundResults] = useState<{
-    playerResult: { effect: string; damage: number; shieldPower?: number; healingPower?: number } | null;
-    aiResult: { effect: string; damage: number; shieldPower?: number; healingPower?: number } | null;
+    playerResult: { effect: string; damage: number; damageDealt?: number; damageBlocked?: number; shieldPower?: number; healingPower?: number } | null;
+    aiResult: { effect: string; damage: number; damageDealt?: number; damageBlocked?: number; shieldPower?: number; healingPower?: number } | null;
   } | null>(null);
   const [selectedComponent, setSelectedComponent] = useState<SpellComponent | null>(null);
   const [mobileTab, setMobileTab] = useState<"components" | "builder" | "battle">("builder");
@@ -183,12 +183,16 @@ export default function GamePage() {
           playerResult: {
             effect: response.playerSpellResult.effect,
             damage: response.playerSpellResult.damage,
+            damageDealt: response.playerSpellResult.damageDealt,
+            damageBlocked: response.playerSpellResult.damageBlocked,
             shieldPower: response.playerSpellResult.shieldPower,
             healingPower: response.playerSpellResult.healingPower,
           },
           aiResult: response.aiSpellResult ? {
             effect: response.aiSpellResult.effect,
             damage: response.aiSpellResult.damage,
+            damageDealt: response.aiSpellResult.damageDealt,
+            damageBlocked: response.aiSpellResult.damageBlocked,
             shieldPower: response.aiSpellResult.shieldPower,
             healingPower: response.aiSpellResult.healingPower,
           } : null,

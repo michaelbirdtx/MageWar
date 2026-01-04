@@ -13,6 +13,8 @@ export interface CastSpellResponse {
   playerSpellResult: {
     effect: string;
     damage: number;
+    damageDealt?: number;
+    damageBlocked?: number;
     shieldPower?: number;
     healingPower?: number;
     componentsUsed?: number;
@@ -21,6 +23,8 @@ export interface CastSpellResponse {
   aiSpellResult?: {
     effect: string;
     damage: number;
+    damageDealt?: number;
+    damageBlocked?: number;
     shieldPower?: number;
     healingPower?: number;
     componentsUsed?: number;
