@@ -23,6 +23,9 @@ interface SpellBuilderProps {
   onClearSpell: () => void;
   playerSpecialization: Specialization;
   playerIntellect: number;
+  selectedComponent?: SpellComponent | null;
+  onComponentPlaced?: () => void;
+  isTouchMode?: boolean;
 }
 
 export default function SpellBuilder({
@@ -32,6 +35,9 @@ export default function SpellBuilder({
   onClearSpell,
   playerSpecialization,
   playerIntellect,
+  selectedComponent,
+  onComponentPlaced,
+  isTouchMode = false,
 }: SpellBuilderProps) {
   const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
   const [dragOverChild, setDragOverChild] = useState<string | null>(null);
@@ -197,6 +203,82 @@ export default function SpellBuilder({
       onComponentsChange(components.filter((c) => c.id !== componentId));
     }
   };
+  
+  // Handle tap-to-place for mobile/touch
+  const handleTapToPlace = (parentId?: string) => {
+    if (!selectedComponent) return;
+    
+    const newComponent = { ...selectedComponent };
+    const originalBaseId = newComponent.baseId || newComponent.id;
+    newComponent.id = `${originalBaseId}-${Date.now()}`;
+    newComponent.baseId = originalBaseId;
+    
+    // Check if already used
+    const usedIds = getUsedBaseIds(components);
+    if (usedIds.has(originalBaseId)) {
+      toast({
+        title: "Component Already Used",
+        description: "Each component can only be used once per round.",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    if (parentId) {
+      // Placing inside a container
+      if (newComponent.type === "container") {
+        toast({
+          title: "Invalid Action",
+          description: "Containers cannot be placed inside other containers.",
+          variant: "destructive",
+        });
+        return;
+      }
+      
+      const updatedComponents = components.map((comp) => {
+        if (comp.id === parentId && comp.type === "container") {
+          if ((comp.children || []).length >= 4) {
+            toast({
+              title: "Container Full",
+              description: "Each container can hold a maximum of 4 components.",
+              variant: "destructive",
+            });
+            return comp;
+          }
+          return {
+            ...comp,
+            children: [...(comp.children || []), newComponent],
+          };
+        }
+        return comp;
+      });
+      onComponentsChange(updatedComponents);
+    } else {
+      // Placing at top level - only containers allowed
+      if (newComponent.type !== "container") {
+        toast({
+          title: "Invalid Action",
+          description: "Only containers can be placed in the main spell area.",
+          variant: "destructive",
+        });
+        return;
+      }
+      
+      const containerCount = components.filter((c) => c.type === "container").length;
+      if (containerCount >= MAX_SPELLS_PER_ROUND) {
+        toast({
+          title: "Maximum Spells Reached",
+          description: `You can only cast up to ${MAX_SPELLS_PER_ROUND} spells per round.`,
+          variant: "destructive",
+        });
+        return;
+      }
+      
+      onComponentsChange([...components, newComponent]);
+    }
+    
+    onComponentPlaced?.();
+  };
 
   return (
     <div className="flex flex-col gap-4 h-full">
@@ -225,17 +307,33 @@ export default function SpellBuilder({
           components.length === 0
             ? "border-dashed border-muted-foreground/30"
             : "border-primary/50"
-        } ${dragOverIndex === null && dragOverChild === null ? "" : "border-primary"}`}
+        } ${dragOverIndex === null && dragOverChild === null ? "" : "border-primary"} ${
+          selectedComponent ? "cursor-pointer ring-2 ring-primary/50" : ""
+        }`}
         onDrop={(e) => handleDrop(e)}
         onDragOver={(e) => handleDragOver(e)}
         onDragLeave={handleDragLeave}
+        onClick={(e) => {
+          // Only handle clicks on the Card itself, not children
+          if (e.target === e.currentTarget && selectedComponent) {
+            handleTapToPlace();
+          }
+        }}
         data-testid="container-spell-builder"
       >
         {components.length === 0 ? (
-          <div className="flex flex-col items-center justify-center h-full text-muted-foreground">
+          <div 
+            className="flex flex-col items-center justify-center h-full text-muted-foreground"
+            onClick={() => selectedComponent && handleTapToPlace()}
+          >
             <Sparkles className="w-12 h-12 mb-4 opacity-50" />
             <p className="text-center">
-              Drag components here to build your spell
+              {selectedComponent 
+                ? `Tap here to place ${selectedComponent.name}`
+                : isTouchMode
+                  ? "Select a component from your hand, then tap here to place it"
+                  : "Drag components here to build your spell"
+              }
             </p>
           </div>
         ) : (
@@ -249,6 +347,8 @@ export default function SpellBuilder({
                 onDragOver={handleDragOver}
                 onDragLeave={handleDragLeave}
                 isDragOver={dragOverChild === component.id}
+                onTapToPlace={handleTapToPlace}
+                selectedComponent={selectedComponent}
               />
             ))}
           </div>
@@ -438,6 +538,8 @@ function ComponentInBuilder({
   onDragOver,
   onDragLeave,
   isDragOver,
+  onTapToPlace,
+  selectedComponent,
 }: {
   component: SpellComponent;
   removeComponent: (componentId: string, parentId?: string) => void;
@@ -445,6 +547,8 @@ function ComponentInBuilder({
   onDragOver: (e: React.DragEvent, index?: number, parentId?: string) => void;
   onDragLeave: (e: React.DragEvent) => void;
   isDragOver: boolean;
+  onTapToPlace?: (parentId?: string) => void;
+  selectedComponent?: SpellComponent | null;
 }) {
   const elementColor = ELEMENT_COLORS[component.element];
   const elementBg = ELEMENT_BG_COLORS[component.element];
@@ -490,10 +594,18 @@ function ComponentInBuilder({
         <div
           className={`ml-6 border-l-2 pl-4 ${elementBorder} min-h-16 ${
             isDragOver ? "border-primary bg-primary/5" : ""
-          } ${component.children && component.children.length > 0 ? "" : "border-dashed"}`}
+          } ${component.children && component.children.length > 0 ? "" : "border-dashed"} ${
+            selectedComponent ? "cursor-pointer" : ""
+          }`}
           onDrop={(e) => onDrop(e, component.id)}
           onDragOver={(e) => onDragOver(e, undefined, component.id)}
           onDragLeave={onDragLeave}
+          onClick={(e) => {
+            e.stopPropagation();
+            if (selectedComponent && onTapToPlace) {
+              onTapToPlace(component.id);
+            }
+          }}
         >
           {component.children && component.children.length > 0 ? (
             <div className="flex flex-col gap-2">
@@ -518,7 +630,10 @@ function ComponentInBuilder({
                     variant="ghost"
                     size="icon"
                     className="opacity-0 group-hover:opacity-100 transition-opacity h-6 w-6"
-                    onClick={() => removeComponent(child.id, component.id)}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      removeComponent(child.id, component.id);
+                    }}
                     data-testid={`button-remove-child-${child.id}`}
                   >
                     <X className="w-3 h-3" />
@@ -528,7 +643,10 @@ function ComponentInBuilder({
             </div>
           ) : (
             <div className="flex items-center justify-center h-16 text-xs text-muted-foreground">
-              Drop components here
+              {selectedComponent 
+                ? `Tap to place ${selectedComponent.name}`
+                : "Drop components here"
+              }
             </div>
           )}
         </div>

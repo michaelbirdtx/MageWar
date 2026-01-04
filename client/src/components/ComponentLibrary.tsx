@@ -9,9 +9,17 @@ interface ComponentLibraryProps {
   onComponentSelect: (component: SpellComponent) => void;
   usedComponentIds?: Set<string>;
   playerHand?: SpellComponent[];
+  selectedComponentId?: string;
+  isTouchMode?: boolean;
 }
 
-export default function ComponentLibrary({ onComponentSelect, usedComponentIds = new Set(), playerHand = [] }: ComponentLibraryProps) {
+export default function ComponentLibrary({ 
+  onComponentSelect, 
+  usedComponentIds = new Set(), 
+  playerHand = [],
+  selectedComponentId,
+  isTouchMode = false,
+}: ComponentLibraryProps) {
   const [activeElement, setActiveElement] = useState<ElementType | "all">("all");
   const [draggingId, setDraggingId] = useState<string | null>(null);
   
@@ -34,6 +42,13 @@ export default function ComponentLibrary({ onComponentSelect, usedComponentIds =
   
   const handleDragEnd = () => {
     setDraggingId(null);
+  };
+  
+  const handleClick = (component: SpellComponent) => {
+    if (usedComponentIds.has(component.baseId || component.id)) {
+      return;
+    }
+    onComponentSelect(component);
   };
   
   return (
@@ -66,8 +81,11 @@ export default function ComponentLibrary({ onComponentSelect, usedComponentIds =
                 <ComponentCard
                   component={component}
                   onDragStart={handleDragStart}
+                  onClick={() => handleClick(component)}
                   isDragging={draggingId === component.id}
                   isUsed={usedComponentIds.has(component.baseId || component.id)}
+                  isSelected={selectedComponentId === component.id}
+                  isTouchMode={isTouchMode}
                 />
               </div>
             ))}

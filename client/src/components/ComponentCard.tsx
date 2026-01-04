@@ -10,15 +10,21 @@ import { Card } from "@/components/ui/card";
 interface ComponentCardProps {
   component: SpellComponent;
   onDragStart?: (e: React.DragEvent, component: SpellComponent) => void;
+  onClick?: () => void;
   isDragging?: boolean;
   isUsed?: boolean;
+  isSelected?: boolean;
+  isTouchMode?: boolean;
 }
 
 export default function ComponentCard({
   component,
   onDragStart,
+  onClick,
   isDragging,
   isUsed,
+  isSelected,
+  isTouchMode,
 }: ComponentCardProps) {
   const elementColor = ELEMENT_COLORS[component.element];
   const elementBg = ELEMENT_BG_COLORS[component.element];
@@ -31,18 +37,30 @@ export default function ComponentCard({
     }
     onDragStart?.(e, component);
   };
+  
+  const handleClick = () => {
+    if (!isUsed && onClick) {
+      onClick();
+    }
+  };
 
   return (
     <Card
-      draggable={!!onDragStart && !isUsed}
+      draggable={!!onDragStart && !isUsed && !isTouchMode}
       onDragStart={handleDragStart}
-      className={`p-4 transition-all border-2 ${elementBorder} ${
+      onClick={handleClick}
+      className={`p-4 transition-all border-2 select-none touch-manipulation ${elementBorder} ${
         isUsed 
           ? "opacity-40 cursor-not-allowed grayscale" 
-          : "cursor-grab active:cursor-grabbing hover-elevate"
-      } ${elementBg} ${isDragging ? "opacity-60" : ""}`}
+          : isTouchMode 
+            ? "cursor-pointer active:scale-[0.98]" 
+            : "cursor-grab active:cursor-grabbing hover-elevate"
+      } ${elementBg} ${isDragging ? "opacity-60" : ""} ${
+        isSelected ? "ring-2 ring-primary ring-offset-2 scale-[1.02]" : ""
+      }`}
       data-testid={`card-component-${component.id}`}
       data-is-used={isUsed ? "true" : "false"}
+      data-is-selected={isSelected ? "true" : "false"}
       data-component-id={component.id}
     >
       <div className="flex flex-col gap-2">

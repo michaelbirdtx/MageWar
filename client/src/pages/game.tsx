@@ -7,10 +7,12 @@ import TutorialDialog from "@/components/TutorialDialog";
 import CharacterCreator from "@/components/CharacterCreator";
 import ResultsModal from "@/components/ResultsModal";
 import { Button } from "@/components/ui/button";
-import { HelpCircle, Moon, Sun, RotateCcw } from "lucide-react";
+import { HelpCircle, Moon, Sun, RotateCcw, Wand2, Backpack, Swords } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { createNewGame, castSpell, deleteGame, CharacterData } from "@/lib/gameApi";
 import { drawableComponents } from "@/lib/gameData";
+import { useIsTabletOrMobile, useIsTouchDevice } from "@/hooks/use-mobile";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -39,18 +41,18 @@ const getUsedComponentIds = (comps: SpellComponent[]): Set<string> => {
 // Convert hand IDs to full SpellComponent objects with unique instance IDs
 const getHandComponents = (handIds: string[]): SpellComponent[] => {
   const componentMap = new Map(drawableComponents.map(c => [c.id, c]));
-  return handIds
-    .map((id, index) => {
-      const base = componentMap.get(id);
-      if (!base) return undefined;
-      // Create a unique instance with baseId for rule enforcement
-      return {
+  const result: SpellComponent[] = [];
+  handIds.forEach((id, index) => {
+    const base = componentMap.get(id);
+    if (base) {
+      result.push({
         ...base,
         id: `${id}-${index}`, // Unique ID for each drawn instance
         baseId: id, // Original ID for matching and validation
-      };
-    })
-    .filter((c): c is SpellComponent => c !== undefined);
+      });
+    }
+  });
+  return result;
 };
 
 export default function GamePage() {
@@ -72,7 +74,28 @@ export default function GamePage() {
     playerResult: { effect: string; damage: number; shieldPower?: number; healingPower?: number } | null;
     aiResult: { effect: string; damage: number; shieldPower?: number; healingPower?: number } | null;
   } | null>(null);
+  const [selectedComponent, setSelectedComponent] = useState<SpellComponent | null>(null);
+  const [mobileTab, setMobileTab] = useState<"components" | "builder" | "battle">("builder");
   const { toast } = useToast();
+  const isMobile = useIsTabletOrMobile();
+  const isTouch = useIsTouchDevice();
+  
+  // Handle tap-to-select for mobile: when a component is tapped, select it
+  const handleComponentTap = (component: SpellComponent) => {
+    if (selectedComponent?.id === component.id) {
+      setSelectedComponent(null); // Deselect if tapping same component
+    } else {
+      setSelectedComponent(component);
+      if (isMobile) {
+        setMobileTab("builder"); // Switch to builder tab on mobile after selecting
+      }
+    }
+  };
+  
+  // Clear selection when component is placed
+  const handleComponentPlaced = () => {
+    setSelectedComponent(null);
+  };
   
   useEffect(() => {
     if (isDark) {
@@ -262,40 +285,119 @@ export default function GamePage() {
       </header>
       
       {/* Main Game Area */}
-      <main className="p-6">
-        <div className="max-w-[100rem] mx-auto grid grid-cols-1 lg:grid-cols-5 gap-6">
-          {/* Component Library */}
-          <div className="lg:col-span-1 min-w-0">
-            <ComponentLibrary 
-              onComponentSelect={(comp) => console.log("Selected:", comp)}
-              usedComponentIds={getUsedComponentIds(spellComponents)}
-              playerHand={getHandComponents(gameState?.player.hand || [])}
-            />
+      <main className="p-4 lg:p-6">
+        {/* Mobile Layout with Tabs */}
+        {isMobile ? (
+          <div className="flex flex-col h-[calc(100vh-8rem)]">
+            {/* Selected component indicator */}
+            {selectedComponent && (
+              <div className="mb-2 p-2 bg-primary/10 border border-primary rounded-lg flex items-center justify-between">
+                <span className="text-sm font-medium">
+                  Selected: <span className="text-primary">{selectedComponent.name}</span>
+                </span>
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  onClick={() => setSelectedComponent(null)}
+                  data-testid="button-clear-selection"
+                >
+                  Clear
+                </Button>
+              </div>
+            )}
+            
+            <Tabs value={mobileTab} onValueChange={(v) => setMobileTab(v as "components" | "builder" | "battle")} className="flex-1 flex flex-col">
+              <TabsList className="grid grid-cols-3 w-full">
+                <TabsTrigger value="components" data-testid="tab-components" className="flex items-center gap-1">
+                  <Backpack className="w-4 h-4" />
+                  <span className="hidden sm:inline">Hand</span>
+                </TabsTrigger>
+                <TabsTrigger value="builder" data-testid="tab-builder" className="flex items-center gap-1">
+                  <Wand2 className="w-4 h-4" />
+                  <span className="hidden sm:inline">Spell</span>
+                </TabsTrigger>
+                <TabsTrigger value="battle" data-testid="tab-battle" className="flex items-center gap-1">
+                  <Swords className="w-4 h-4" />
+                  <span className="hidden sm:inline">Battle</span>
+                </TabsTrigger>
+              </TabsList>
+              
+              <TabsContent value="components" className="flex-1 overflow-auto mt-4">
+                <ComponentLibrary 
+                  onComponentSelect={handleComponentTap}
+                  usedComponentIds={getUsedComponentIds(spellComponents)}
+                  playerHand={getHandComponents(gameState?.player.hand || [])}
+                  selectedComponentId={selectedComponent?.id}
+                  isTouchMode={isTouch}
+                />
+              </TabsContent>
+              
+              <TabsContent value="builder" className="flex-1 overflow-auto mt-4">
+                <SpellBuilder
+                  components={spellComponents}
+                  onComponentsChange={setSpellComponents}
+                  onCastSpell={handleCastSpell}
+                  onClearSpell={() => setSpellComponents([])}
+                  playerSpecialization={gameState.player.specialization}
+                  playerIntellect={gameState.player.intellect}
+                  selectedComponent={selectedComponent}
+                  onComponentPlaced={handleComponentPlaced}
+                  isTouchMode={isTouch}
+                />
+              </TabsContent>
+              
+              <TabsContent value="battle" className="flex-1 overflow-auto mt-4">
+                <BattleArena
+                  player={gameState.player}
+                  opponent={gameState.opponent}
+                  currentTurn={gameState.currentTurn}
+                  playerSpellLocked={playerSpellLocked}
+                  aiSpellLocked={aiSpellLocked || aiThinkingLock}
+                />
+              </TabsContent>
+            </Tabs>
           </div>
-          
-          {/* Spell Builder */}
-          <div className="lg:col-span-3 lg:min-w-[640px]">
-            <SpellBuilder
-              components={spellComponents}
-              onComponentsChange={setSpellComponents}
-              onCastSpell={handleCastSpell}
-              onClearSpell={() => setSpellComponents([])}
-              playerSpecialization={gameState.player.specialization}
-              playerIntellect={gameState.player.intellect}
-            />
+        ) : (
+          /* Desktop Layout */
+          <div className="max-w-[100rem] mx-auto grid grid-cols-1 lg:grid-cols-5 gap-6">
+            {/* Component Library */}
+            <div className="lg:col-span-1 min-w-0">
+              <ComponentLibrary 
+                onComponentSelect={handleComponentTap}
+                usedComponentIds={getUsedComponentIds(spellComponents)}
+                playerHand={getHandComponents(gameState?.player.hand || [])}
+                selectedComponentId={selectedComponent?.id}
+                isTouchMode={isTouch}
+              />
+            </div>
+            
+            {/* Spell Builder */}
+            <div className="lg:col-span-3 lg:min-w-[640px]">
+              <SpellBuilder
+                components={spellComponents}
+                onComponentsChange={setSpellComponents}
+                onCastSpell={handleCastSpell}
+                onClearSpell={() => setSpellComponents([])}
+                playerSpecialization={gameState.player.specialization}
+                playerIntellect={gameState.player.intellect}
+                selectedComponent={selectedComponent}
+                onComponentPlaced={handleComponentPlaced}
+                isTouchMode={isTouch}
+              />
+            </div>
+            
+            {/* Battle Arena */}
+            <div className="lg:col-span-1 min-w-0">
+              <BattleArena
+                player={gameState.player}
+                opponent={gameState.opponent}
+                currentTurn={gameState.currentTurn}
+                playerSpellLocked={playerSpellLocked}
+                aiSpellLocked={aiSpellLocked || aiThinkingLock}
+              />
+            </div>
           </div>
-          
-          {/* Battle Arena */}
-          <div className="lg:col-span-1 min-w-0">
-            <BattleArena
-              player={gameState.player}
-              opponent={gameState.opponent}
-              currentTurn={gameState.currentTurn}
-              playerSpellLocked={playerSpellLocked}
-              aiSpellLocked={aiSpellLocked || aiThinkingLock}
-            />
-          </div>
-        </div>
+        )}
       </main>
       
       {/* Tutorial */}

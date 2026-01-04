@@ -6,6 +6,10 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import GamePage from "@/pages/game";
 import NotFound from "@/pages/not-found";
 
+// Enable touch drag-and-drop support for mobile devices
+import { enableDragDropTouch } from "@dragdroptouch/drag-drop-touch";
+enableDragDropTouch();
+
 function Router() {
   return (
     <Switch>
