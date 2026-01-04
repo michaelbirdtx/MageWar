@@ -94,7 +94,7 @@ export default function ComponentLibrary({
         </TabsList>
         
         <TabsContent value={activeElement} className="mt-4">
-          <div className="grid grid-cols-1 gap-4 overflow-y-auto overflow-x-hidden max-h-[calc(100vh-240px)]">
+          <div className="grid grid-cols-1 gap-4 overflow-y-auto max-h-[calc(100vh-240px)] p-1">
             {filteredComponents.map((component) => (
               <div key={component.id} onDragEnd={handleDragEnd}>
                 <ComponentCard
