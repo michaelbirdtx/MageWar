@@ -24,18 +24,19 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 
-// Helper function to get all used base IDs from components (excluding always-available components)
-const getUsedComponentIds = (comps: SpellComponent[]): Set<string> => {
-  const used = new Set<string>();
+// Helper function to count how many of each component baseId are used (excluding always-available components)
+const getUsedComponentCounts = (comps: SpellComponent[]): Map<string, number> => {
+  const counts = new Map<string, number>();
   const traverse = (comp: SpellComponent) => {
-    // Don't mark containers or propulsion (Gust) as "used" - they're always available
+    // Don't count containers or propulsion (Gust) as "used" - they're always available
     if (comp.type !== "container" && comp.role !== "propulsion") {
-      used.add(comp.baseId || comp.id);
+      const baseId = comp.baseId || comp.id;
+      counts.set(baseId, (counts.get(baseId) || 0) + 1);
     }
     comp.children?.forEach(traverse);
   };
   comps.forEach(traverse);
-  return used;
+  return counts;
 };
 
 // Convert hand IDs to full SpellComponent objects with unique instance IDs
@@ -330,7 +331,7 @@ export default function GamePage() {
               <TabsContent value="components" className="flex-1 overflow-auto mt-4">
                 <ComponentLibrary 
                   onComponentSelect={handleComponentTap}
-                  usedComponentIds={getUsedComponentIds(spellComponents)}
+                  usedComponentCounts={getUsedComponentCounts(spellComponents)}
                   playerHand={getHandComponents(gameState?.player.hand || [])}
                   selectedComponentId={selectedComponent?.id}
                   isTouchMode={isTouch}
@@ -369,7 +370,7 @@ export default function GamePage() {
             <div className="lg:col-span-1 min-w-0">
               <ComponentLibrary 
                 onComponentSelect={handleComponentTap}
-                usedComponentIds={getUsedComponentIds(spellComponents)}
+                usedComponentCounts={getUsedComponentCounts(spellComponents)}
                 playerHand={getHandComponents(gameState?.player.hand || [])}
                 selectedComponentId={selectedComponent?.id}
                 isTouchMode={isTouch}

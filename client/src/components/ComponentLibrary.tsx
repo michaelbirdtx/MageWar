@@ -7,7 +7,7 @@ import { Flame, Droplet, Mountain, Wind } from "lucide-react";
 
 interface ComponentLibraryProps {
   onComponentSelect: (component: SpellComponent) => void;
-  usedComponentIds?: Set<string>;
+  usedComponentCounts?: Map<string, number>;
   playerHand?: SpellComponent[];
   selectedComponentId?: string;
   isTouchMode?: boolean;
@@ -15,7 +15,7 @@ interface ComponentLibraryProps {
 
 export default function ComponentLibrary({ 
   onComponentSelect, 
-  usedComponentIds = new Set(), 
+  usedComponentCounts = new Map(), 
   playerHand = [],
   selectedComponentId,
   isTouchMode = false,
@@ -26,12 +26,31 @@ export default function ComponentLibrary({
   // Combine always-available (containers, Gust) with player's drawn hand
   const allAvailable = [...alwaysAvailableComponents, ...playerHand];
   
+  // Count how many of each baseId exist in the player's hand
+  const handCounts = new Map<string, number>();
+  playerHand.forEach(comp => {
+    const baseId = comp.baseId || comp.id;
+    handCounts.set(baseId, (handCounts.get(baseId) || 0) + 1);
+  });
+  
+  // Check if a component is fully used (all copies in hand are in the spell)
+  const isComponentFullyUsed = (component: SpellComponent): boolean => {
+    // Always-available components (containers, propulsion) are never "used"
+    if (component.type === "container" || component.role === "propulsion") {
+      return false;
+    }
+    const baseId = component.baseId || component.id;
+    const inHand = handCounts.get(baseId) || 0;
+    const inSpell = usedComponentCounts.get(baseId) || 0;
+    return inSpell >= inHand;
+  };
+  
   const filteredComponents = activeElement === "all" 
     ? allAvailable 
     : allAvailable.filter(c => c.element === activeElement);
   
   const handleDragStart = (e: React.DragEvent, component: SpellComponent) => {
-    if (usedComponentIds.has(component.baseId || component.id)) {
+    if (isComponentFullyUsed(component)) {
       e.preventDefault();
       return;
     }
@@ -45,7 +64,7 @@ export default function ComponentLibrary({
   };
   
   const handleClick = (component: SpellComponent) => {
-    if (usedComponentIds.has(component.baseId || component.id)) {
+    if (isComponentFullyUsed(component)) {
       return;
     }
     onComponentSelect(component);
@@ -83,7 +102,7 @@ export default function ComponentLibrary({
                   onDragStart={handleDragStart}
                   onClick={() => handleClick(component)}
                   isDragging={draggingId === component.id}
-                  isUsed={usedComponentIds.has(component.baseId || component.id)}
+                  isUsed={isComponentFullyUsed(component)}
                   isSelected={selectedComponentId === component.id}
                   isTouchMode={isTouchMode}
                 />
