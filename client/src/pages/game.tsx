@@ -137,6 +137,7 @@ export default function GamePage() {
       const { sessionId: newSessionId, gameState: newGameState } = await createNewGame(characterData);
       setSessionId(newSessionId);
       setGameState(newGameState);
+      setSpellComponents([]); // Clear spell builder for new game
       setShowCharacterCreator(false);
       setAiThinkingLock(false);
     } catch (error) {
