@@ -203,6 +203,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
         gameState.opponent = removeUsedFromHand(gameState.opponent, aiMaterialsUsed);
       }
       
+      // Track actual damage dealt after shields for results display
+      let playerDamageDealt = 0;
+      let playerDamageBlocked = 0;
+      let aiDamageDealt = 0;
+      let aiDamageBlocked = 0;
+      
       // Apply combat with universal targeting
       if (aiComponents.length > 0 && aiStats) {
         const playerToOpponent = playerStats.target === "opponent";
@@ -241,6 +247,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const finalDamageToPlayer = Math.max(0, damageToPlayer - shieldOnPlayer);
         const finalDamageToAI = Math.max(0, damageToAI - shieldOnAI);
         
+        // Track damage dealt and blocked for display
+        if (playerToOpponent) {
+          playerDamageDealt = Math.max(0, playerStats.damage - shieldOnAI);
+          playerDamageBlocked = Math.min(playerStats.damage, shieldOnAI);
+        }
+        if (aiToOpponent) {
+          aiDamageDealt = Math.max(0, aiStats.damage - shieldOnPlayer);
+          aiDamageBlocked = Math.min(aiStats.damage, shieldOnPlayer);
+        }
+        
         // Apply damage simultaneously
         gameState = applySimultaneousDamage(gameState, finalDamageToPlayer, finalDamageToAI);
         
@@ -259,6 +275,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         
         if (playerToOpponent) {
           const finalDamage = Math.max(0, playerStats.damage - 0);
+          playerDamageDealt = finalDamage;
+          playerDamageBlocked = 0;
           gameState = applySimultaneousDamage(gameState, 0, finalDamage);
           gameState.opponent = {
             ...gameState.opponent,
@@ -294,6 +312,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         playerSpellResult: { 
           effect: playerStats.effect, 
           damage: playerStats.damage,
+          damageDealt: playerDamageDealt,
+          damageBlocked: playerDamageBlocked,
           shieldPower: playerStats.shieldPower,
           healingPower: playerStats.healingPower,
           componentsUsed: playerStats.componentsUsed,
@@ -302,6 +322,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         aiSpellResult: aiComponents.length > 0 && aiStats ? {
           effect: aiStats.effect,
           damage: aiStats.damage,
+          damageDealt: aiDamageDealt,
+          damageBlocked: aiDamageBlocked,
           shieldPower: aiStats.shieldPower,
           healingPower: aiStats.healingPower,
           componentsUsed: aiStats.componentsUsed,
