@@ -154,6 +154,7 @@ export function createInitialGameState(playerAttributes: CharacterAttributes): G
     lockedPlayerSpell: null,
     lockedAiSpell: null,
     componentPool: aiDraw.remaining,
+    discardPile: [],
     round: 1,
   };
 }
@@ -526,12 +527,29 @@ export function checkGameEnd(state: GameState): GameState {
 export function replenishHand(
   state: GameState,
   target: "player" | "opponent",
-  componentsUsed: number
+  componentsUsed: number,
+  usedMaterialIds?: string[]
 ): GameState {
   const newState = { ...state };
   
   if (!newState.componentPool) {
     newState.componentPool = [];
+  }
+  if (!newState.discardPile) {
+    newState.discardPile = [];
+  }
+  
+  // Add used materials to discard pile (if provided)
+  if (usedMaterialIds && usedMaterialIds.length > 0) {
+    newState.discardPile = [...newState.discardPile, ...usedMaterialIds];
+  }
+  
+  // If pool doesn't have enough components, reshuffle discard pile into pool
+  if (newState.componentPool.length < componentsUsed && newState.discardPile.length > 0) {
+    // Shuffle discard pile and add to pool
+    const shuffledDiscard = shuffleArray(newState.discardPile);
+    newState.componentPool = [...newState.componentPool, ...shuffledDiscard];
+    newState.discardPile = [];
   }
   
   // Draw new components equal to what was used

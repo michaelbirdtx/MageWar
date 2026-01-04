@@ -75,5 +75,6 @@ export interface GameState {
   lockedPlayerSpell: Spell | null;
   lockedAiSpell: Spell | null;
   componentPool: string[]; // All drawable component IDs (shuffled bag)
+  discardPile: string[]; // Used components that can be reshuffled when pool is depleted
   round: number;
 }

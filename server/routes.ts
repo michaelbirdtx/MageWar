@@ -302,8 +302,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         gameState.gamePhase = "combat";
         
         // Replenish hands with new components equal to what was used
-        gameState = replenishHand(gameState, "player", playerMaterialsUsed.length);
-        gameState = replenishHand(gameState, "opponent", aiMaterialsUsed.length);
+        // Pass used materials to add them to the discard pile for reshuffling
+        gameState = replenishHand(gameState, "player", playerMaterialsUsed.length, playerMaterialsUsed);
+        gameState = replenishHand(gameState, "opponent", aiMaterialsUsed.length, aiMaterialsUsed);
       }
       
       await storage.updateGameState(sessionId, gameState);
