@@ -498,16 +498,16 @@ export function calculateSpellPower(
     });
   });
 
-  // Add intellect bonus to damage (applied to first damage spell in breakdown)
+  // Add intellect bonus to damage ONLY when there's actual damage (matches backend)
   // Calculate bonus the same way backend does: floor(intellect / 2)
   const intellectBonus = calculateIntellectBonus(intellect);
-  if (intellectBonus > 0 && perSpellBreakdown.length > 0) {
+  if (intellectBonus > 0 && totalDamage > 0 && perSpellBreakdown.length > 0) {
     const firstDamageSpell = perSpellBreakdown.find(s => s.effectType === "damage" && s.damage > 0);
     if (firstDamageSpell) {
       firstDamageSpell.damage += intellectBonus;
     }
+    totalDamage += intellectBonus;
   }
-  totalDamage += intellectBonus;
 
   const target: "self" | "opponent" = hasPropulsionInsideContainer ? "opponent" : "self";
 
