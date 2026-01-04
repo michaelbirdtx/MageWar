@@ -221,27 +221,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
         let healingOnPlayer = 0;
         let healingOnAI = 0;
         
-        // Route player's spell effects based on target
+        // Route player's spell effects:
+        // - Damage goes to target (opponent if has Gust)
+        // - Shield and healing ALWAYS go to self (the caster)
         if (playerToOpponent) {
           damageToAI += playerStats.damage;
-          shieldOnAI += playerStats.shieldPower;
-          healingOnAI += playerStats.healingPower;
         } else {
           damageToPlayer += playerStats.damage;
-          shieldOnPlayer += playerStats.shieldPower;
-          healingOnPlayer += playerStats.healingPower;
         }
+        // Player's shield and healing always protect/heal the player
+        shieldOnPlayer += playerStats.shieldPower;
+        healingOnPlayer += playerStats.healingPower;
         
-        // Route AI's spell effects based on target
+        // Route AI's spell effects:
+        // - Damage goes to target (player if AI has Gust)
+        // - Shield and healing ALWAYS go to self (the AI)
         if (aiToOpponent) {
           damageToPlayer += aiStats.damage;
-          shieldOnPlayer += aiStats.shieldPower;
-          healingOnPlayer += aiStats.healingPower;
         } else {
           damageToAI += aiStats.damage;
-          shieldOnAI += aiStats.shieldPower;
-          healingOnAI += aiStats.healingPower;
         }
+        // AI's shield and healing always protect/heal the AI
+        shieldOnAI += aiStats.shieldPower;
+        healingOnAI += aiStats.healingPower;
         
         // Apply shields to reduce damage
         const finalDamageToPlayer = Math.max(0, damageToPlayer - shieldOnPlayer);
@@ -275,24 +277,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
         // Player only (no AI spell)
         const playerToOpponent = playerStats.target === "opponent";
         
+        // Damage goes to target, shield/healing always to self
         if (playerToOpponent) {
-          // No shields protecting opponent (no AI spell)
+          // Player attacks opponent, no AI shield to block
           playerDamageDealt = playerStats.damage;
           playerDamageBlocked = 0;
           gameState = applySimultaneousDamage(gameState, 0, playerStats.damage);
-          gameState.opponent = {
-            ...gameState.opponent,
-            health: Math.min(gameState.opponent.maxHealth, gameState.opponent.health + playerStats.healingPower),
-          };
         } else {
-          // Player targeting self - shield blocks own damage
-          const finalDamage = Math.max(0, playerStats.damage - playerStats.shieldPower);
-          gameState = applySimultaneousDamage(gameState, finalDamage, 0);
-          gameState.player = {
-            ...gameState.player,
-            health: Math.min(gameState.player.maxHealth, gameState.player.health + playerStats.healingPower),
-          };
+          // Player targeting self with damage - unusual but possible
+          gameState = applySimultaneousDamage(gameState, playerStats.damage, 0);
         }
+        // Player's shield and healing always go to player
+        gameState.player = {
+          ...gameState.player,
+          health: Math.min(gameState.player.maxHealth, gameState.player.health + playerStats.healingPower),
+        };
       }
       
       // Check for victory/defeat/tie after all damage is applied
