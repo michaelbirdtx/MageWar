@@ -8,13 +8,23 @@ import {
 import { Button } from "@/components/ui/button";
 import { Zap } from "lucide-react";
 
+interface SpellResult {
+  effect: string;
+  damage: number;
+  damageDealt?: number;
+  damageBlocked?: number;
+  shieldPower?: number;
+  healingPower?: number;
+  bonus?: number;
+}
+
 interface ResultsModalProps {
   open: boolean;
   onNextRound: () => void;
   playerName: string;
   opponentName: string;
-  playerResult: { effect: string; damage: number; shieldPower?: number; healingPower?: number; bonus?: number } | null;
-  aiResult: { effect: string; damage: number; shieldPower?: number; healingPower?: number; bonus?: number } | null;
+  playerResult: SpellResult | null;
+  aiResult: SpellResult | null;
 }
 
 export default function ResultsModal({
@@ -56,7 +66,12 @@ export default function ResultsModal({
                     <div>
                       <p className="text-xs text-muted-foreground">Damage</p>
                       <p className="text-2xl font-bold text-destructive" data-testid="text-player-damage">
-                        {playerResult.damage}
+                        {playerResult.damageDealt ?? playerResult.damage}
+                        {(playerResult.damageBlocked ?? 0) > 0 && (
+                          <span className="text-sm font-normal text-muted-foreground ml-1">
+                            (blocked {playerResult.damageBlocked})
+                          </span>
+                        )}
                       </p>
                     </div>
                   )}
@@ -106,7 +121,12 @@ export default function ResultsModal({
                     <div>
                       <p className="text-xs text-muted-foreground">Damage</p>
                       <p className="text-2xl font-bold text-destructive" data-testid="text-ai-damage">
-                        {aiResult.damage}
+                        {aiResult.damageDealt ?? aiResult.damage}
+                        {(aiResult.damageBlocked ?? 0) > 0 && (
+                          <span className="text-sm font-normal text-muted-foreground ml-1">
+                            (blocked {aiResult.damageBlocked})
+                          </span>
+                        )}
                       </p>
                     </div>
                   )}

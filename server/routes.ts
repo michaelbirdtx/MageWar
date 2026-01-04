@@ -221,7 +221,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         let healingOnPlayer = 0;
         let healingOnAI = 0;
         
-        // Route player's spell effects
+        // Route player's spell effects based on target
         if (playerToOpponent) {
           damageToAI += playerStats.damage;
           shieldOnAI += playerStats.shieldPower;
@@ -232,7 +232,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           healingOnPlayer += playerStats.healingPower;
         }
         
-        // Route AI's spell effects
+        // Route AI's spell effects based on target
         if (aiToOpponent) {
           damageToPlayer += aiStats.damage;
           shieldOnPlayer += aiStats.shieldPower;
@@ -247,14 +247,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const finalDamageToPlayer = Math.max(0, damageToPlayer - shieldOnPlayer);
         const finalDamageToAI = Math.max(0, damageToAI - shieldOnAI);
         
-        // Track damage dealt and blocked for display
-        if (playerToOpponent) {
-          playerDamageDealt = Math.max(0, playerStats.damage - shieldOnAI);
+        // Calculate damage blocked for each attacker based on shields on defender
+        // Player attacks AI: blocked by shields ON AI (shieldOnAI)
+        if (playerToOpponent && playerStats.damage > 0) {
           playerDamageBlocked = Math.min(playerStats.damage, shieldOnAI);
+          playerDamageDealt = Math.max(0, playerStats.damage - shieldOnAI);
         }
-        if (aiToOpponent) {
-          aiDamageDealt = Math.max(0, aiStats.damage - shieldOnPlayer);
+        // AI attacks Player: blocked by shields ON Player (shieldOnPlayer)
+        if (aiToOpponent && aiStats.damage > 0) {
           aiDamageBlocked = Math.min(aiStats.damage, shieldOnPlayer);
+          aiDamageDealt = Math.max(0, aiStats.damage - shieldOnPlayer);
         }
         
         // Apply damage simultaneously
@@ -274,15 +276,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const playerToOpponent = playerStats.target === "opponent";
         
         if (playerToOpponent) {
-          const finalDamage = Math.max(0, playerStats.damage - 0);
-          playerDamageDealt = finalDamage;
+          // No shields protecting opponent (no AI spell)
+          playerDamageDealt = playerStats.damage;
           playerDamageBlocked = 0;
-          gameState = applySimultaneousDamage(gameState, 0, finalDamage);
+          gameState = applySimultaneousDamage(gameState, 0, playerStats.damage);
           gameState.opponent = {
             ...gameState.opponent,
             health: Math.min(gameState.opponent.maxHealth, gameState.opponent.health + playerStats.healingPower),
           };
         } else {
+          // Player targeting self - shield blocks own damage
           const finalDamage = Math.max(0, playerStats.damage - playerStats.shieldPower);
           gameState = applySimultaneousDamage(gameState, finalDamage, 0);
           gameState.player = {
